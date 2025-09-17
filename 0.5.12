@@ -1,0 +1,2 @@
+Requirement already satisfied: lap in d:\code\capstone\test\venv\lib\site-packages (0.5.12)
+Requirement already satisfied: numpy>=1.21.6 in d:\code\capstone\test\venv\lib\site-packages (from lap) (2.2.6)
