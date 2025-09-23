@@ -9,11 +9,13 @@ import datetime
 import threading
 from collections import defaultdict, deque
 
+# MongoDB setup
 client = MongoClient("mongodb://localhost:27017/")
 db = client["person_reid"]
 people_col = db["people"]
 logs_col = db["logs"]
 
+# Load known people
 def load_known_people():
     people = []
     for doc in people_col.find():
@@ -24,62 +26,53 @@ def load_known_people():
         })
     return people
 
+# Torchreid extractor
 extractor = FeatureExtractor(
     model_name='osnet_x1_0',
     model_path='C:/Users/adity/.cache/torch/checkpoints/osnet_x1_0_imagenet.pth',
     device='cuda' if torch.cuda.is_available() else 'cpu'
 )
 
+# YOLO model
 yolo_model = YOLO("yolov12n.pt")
 
+# Thresholds
 STRICT_TH = 0.30
 LOOSE_TH = 0.45
 YOLO_CONF_TH = 0.6
 
-# History buffer for smoothing and can reducce it till 5 and so 
-prediction_history = defaultdict(lambda: deque(maxlen=15))
+# History buffer for smoothing
+prediction_history = defaultdict(lambda: deque(maxlen=5))
 
-
+# Shared latest frames
 latest_frames = {}
 lock = threading.Lock()
 
-def extract_feature(frame, box, margin=0.1):
+def extract_feature(frame, box):
     x1, y1, x2, y2 = map(int, box)
-    w, h = x2 - x1, y2 - y1
-    x1 = max(0, x1 - int(margin * w))
-    y1 = max(0, y1 - int(margin * h))
-    x2 = min(frame.shape[1], x2 + int(margin * w))
-    y2 = min(frame.shape[0], y2 + int(margin * h))
-
     crop = frame[y1:y2, x1:x2]
     if crop.size == 0:
         return None
     crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
     feat = extractor([crop_rgb])[0].cpu().numpy()
-    return feat / np.linalg.norm(feat)  
-
+    return feat
 
 def match_person(feature, known_people):
-    best_match, best_dist, second_best = None, 1.0, 1.0
+    best_match = None
+    best_dist = 1.0
     for person in known_people:
-        person_feats = np.array(person["features"])
-        dists = [cosine(feature, f.flatten()) for f in person_feats]
+        dists = [cosine(feature, np.array(f).flatten()) for f in person["features"]]
         min_dist = min(dists)
         if min_dist < best_dist:
-            second_best = best_dist
             best_dist = min_dist
             best_match = person
-        elif min_dist < second_best:
-            second_best = min_dist
 
-
-    if best_match and best_dist < STRICT_TH and (second_best - best_dist) > 0.10:
+    if best_match and best_dist < STRICT_TH:
         return best_match["name"], best_match["role"], best_dist
     elif best_match and best_dist < LOOSE_TH:
         return best_match["name"] + " (?)", best_match["role"], best_dist
     else:
         return None, None, None
-
 
 def process_camera(source, cam_name):
     cap = cv2.VideoCapture(source)
@@ -129,6 +122,7 @@ def process_camera(source, cam_name):
                 cv2.putText(frame, label, (x1, y1 - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
+        # Store latest frame safely
         with lock:
             latest_frames[cam_name] = cv2.resize(frame, (480, 360))
 
@@ -147,12 +141,15 @@ def dashboard_loop(camera_list):
             for _, cam_name in camera_list:
                 frame = latest_frames.get(cam_name, np.zeros((360, 480, 3), dtype=np.uint8))
                 
+                # Draw a filled rectangle for text background
                 cv2.rectangle(frame, (0, 0), (200, 30), bg_color, -1)
                 
+                # Put the camera name on top-left
                 cv2.putText(frame, cam_name, (10, 22), font, font_scale, font_color, thickness, cv2.LINE_AA)
                 
                 frames.append(frame)
 
+        # Arrange frames in a grid
         row_size = int(np.ceil(np.sqrt(len(frames))))
         rows = []
         for i in range(0, len(frames), row_size):
@@ -171,8 +168,7 @@ if __name__ == "__main__":
     camera_list = [
         ("vid3.mp4", "Camera_1"),
         ("vid4.mp4", "Camera_2"),
-        # (0, "webcam"),
-        
+        # Add more here
     ]
 
     threads = []
@@ -181,6 +177,7 @@ if __name__ == "__main__":
         t.start()
         threads.append(t)
 
+    # Run dashboard in main thread
     dashboard_loop(camera_list)
 
     for t in threads:
