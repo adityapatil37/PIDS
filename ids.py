@@ -129,14 +129,29 @@ def process_camera(source, cam_name):
     cap.release()
 
 def dashboard_loop(camera_list):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.8
+    font_color = (255, 255, 255)
+    thickness = 2
+    bg_color = (0, 0, 0)
+
     while True:
         with lock:
-            frames = [latest_frames.get(cam_name, np.zeros((360, 480, 3), dtype=np.uint8))
-                      for _, cam_name in camera_list]
+            frames = []
+            for _, cam_name in camera_list:
+                frame = latest_frames.get(cam_name, np.zeros((360, 480, 3), dtype=np.uint8))
+                
+                # Draw a filled rectangle for text background
+                cv2.rectangle(frame, (0, 0), (200, 30), bg_color, -1)
+                
+                # Put the camera name on top-left
+                cv2.putText(frame, cam_name, (10, 22), font, font_scale, font_color, thickness, cv2.LINE_AA)
+                
+                frames.append(frame)
 
-        # Arrange frames in grid
-        rows = []
+        # Arrange frames in a grid
         row_size = int(np.ceil(np.sqrt(len(frames))))
+        rows = []
         for i in range(0, len(frames), row_size):
             row = np.hstack(frames[i:i+row_size])
             rows.append(row)
@@ -147,6 +162,7 @@ def dashboard_loop(camera_list):
             break
 
     cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     camera_list = [
