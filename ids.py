@@ -1,4 +1,3 @@
-# app.py
 import cv2
 import torch
 import numpy as np
@@ -16,7 +15,7 @@ db = client["person_reid"]
 people_col = db["people"]
 logs_col = db["logs"]
 
-# Load known people from DB
+# Load known people
 def load_known_people():
     people = []
     for doc in people_col.find():
@@ -37,13 +36,17 @@ extractor = FeatureExtractor(
 # YOLO model
 yolo_model = YOLO("yolov12n.pt")
 
-# Matching threshold
+# Thresholds
 STRICT_TH = 0.30
 LOOSE_TH = 0.45
-YOLO_CONF_TH = 0.6  # filter weak detections
+YOLO_CONF_TH = 0.6
 
 # History buffer for smoothing
 prediction_history = defaultdict(lambda: deque(maxlen=5))
+
+# Shared latest frames
+latest_frames = {}
+lock = threading.Lock()
 
 def extract_feature(frame, box):
     x1, y1, x2, y2 = map(int, box)
@@ -57,7 +60,6 @@ def extract_feature(frame, box):
 def match_person(feature, known_people):
     best_match = None
     best_dist = 1.0
-
     for person in known_people:
         dists = [cosine(feature, np.array(f).flatten()) for f in person["features"]]
         min_dist = min(dists)
@@ -86,7 +88,7 @@ def process_camera(source, cam_name):
             cls_id = int(r.cls[0])
             conf = float(r.conf[0])
 
-            if cls_id == 0 and conf > YOLO_CONF_TH:  # only strong person detections
+            if cls_id == 0 and conf > YOLO_CONF_TH:
                 x1, y1, x2, y2 = map(int, r.xyxy[0])
                 feature = extract_feature(frame, (x1, y1, x2, y2))
                 if feature is None:
@@ -94,14 +96,12 @@ def process_camera(source, cam_name):
 
                 name, role, dist = match_person(feature, known_people)
 
-                # Stabilize with history
-                box_id = f"{cam_name}_{x1}_{y1}_{x2}_{y2}"  # simple ID from box
+                box_id = f"{cam_name}_{x1}_{y1}_{x2}_{y2}"
                 if name:
                     prediction_history[box_id].append(name)
                 else:
                     prediction_history[box_id].append("UNKNOWN")
 
-                # Majority vote
                 stable_name = max(set(prediction_history[box_id]),
                                   key=prediction_history[box_id].count)
 
@@ -122,18 +122,37 @@ def process_camera(source, cam_name):
                 cv2.putText(frame, label, (x1, y1 - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
-        cv2.imshow(cam_name, frame)
+        # Store latest frame safely
+        with lock:
+            latest_frames[cam_name] = cv2.resize(frame, (480, 360))
+
+    cap.release()
+
+def dashboard_loop(camera_list):
+    while True:
+        with lock:
+            frames = [latest_frames.get(cam_name, np.zeros((360, 480, 3), dtype=np.uint8))
+                      for _, cam_name in camera_list]
+
+        # Arrange frames in grid
+        rows = []
+        row_size = int(np.ceil(np.sqrt(len(frames))))
+        for i in range(0, len(frames), row_size):
+            row = np.hstack(frames[i:i+row_size])
+            rows.append(row)
+        grid = np.vstack(rows)
+
+        cv2.imshow("Dashboard", grid)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    cap.release()
-    cv2.destroyWindow(cam_name)
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     camera_list = [
         ("vid3.mp4", "Camera_1"),
         ("vid4.mp4", "Camera_2"),
-        # You can also use RTSP/USB: (0, "Webcam_1") or ("rtsp://ip", "IPCam")
+        # Add more here
     ]
 
     threads = []
@@ -141,6 +160,9 @@ if __name__ == "__main__":
         t = threading.Thread(target=process_camera, args=(path, cam_name))
         t.start()
         threads.append(t)
+
+    # Run dashboard in main thread
+    dashboard_loop(camera_list)
 
     for t in threads:
         t.join()
