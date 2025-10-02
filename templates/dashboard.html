@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Surveillance Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #111; color: #eee; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .camera { background: #222; padding: 10px; border-radius: 8px; }
+    .camera h3 { margin: 0 0 5px; }
+    img { width: 100%; border-radius: 8px; }
+    #log { margin-top: 20px; max-height: 250px; overflow-y: auto; background: #333; padding: 10px; }
+    .camera-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.camera-feed {
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 10px;
+  background: #f8f8f8;
+}
+  </style>
+</head>
+<body>
+  <h1>Surveillance Dashboard</h1>
+  <div class="grid" id="cameras"></div>
+  <h2>Live Logs</h2>
+  <div id="log"></div>
+  <div class="camera-grid">
+  <div class="camera-feed">
+    <h3>Camera 1</h3>
+    <img src="/video/Camera_1" width="400">
+  </div>
+  <div class="camera-feed">
+    <h3>Camera 2</h3>
+    <img src="/video/Camera_2" width="400">
+  </div>
+</div>
+
+  <script>
+    const socket = io();
+    const cameras = ["Camera_1", "Camera_2"];
+    const grid = document.getElementById("cameras");
+
+    cameras.forEach(cam => {
+      const div = document.createElement("div");
+      div.className = "camera";
+      div.innerHTML = `<h3>${cam}</h3><img id="feed_${cam}" />`;
+      grid.appendChild(div);
+
+      socket.on(`frame_${cam}`, data => {
+        const blob = new Blob([data], { type: "image/jpeg" });
+        document.getElementById(`feed_${cam}`).src = URL.createObjectURL(blob);
+      });
+    });
+
+    socket.on("person_detected", data => {
+      const log = document.getElementById("log");
+      const msg = `[${data.time}] ${data.name} (${data.role}) in ${data.zone} on ${data.camera}`;
+      const p = document.createElement("div");
+      p.textContent = msg;
+      log.prepend(p);
+    });
+  </script>
+</body>
+</html>

@@ -58,5 +58,5 @@ def register_person(name, role, image_paths):
 
 # Example usage
 if __name__ == "__main__":
-    register_person("datla", "Employee0", ["samples/shashank.jpeg", "samples/shashank2.jpeg", "samples/shashank3.jpeg"])
+    register_person("advait", "Employee3", ["samples/adv1.jpeg", "samples/adv2.jpeg", "samples/adv3.jpeg", "samples/adv4.jpeg", "samples/adv5.jpeg", "samples/adv6.jpeg", "samples/adv7.jpeg", "samples/adv8.jpeg", "samples/adv9.jpeg", "samples/adv10.jpeg", "samples/adv11.jpeg", "samples/adv12.jpeg"])
 

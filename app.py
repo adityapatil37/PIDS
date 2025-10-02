@@ -10,7 +10,6 @@ from collections import deque
 import os
 import time
 
-# ----------------- Config / Hyperparams -----------------
 YOLO_WEIGHTS = "yolov12n.pt"   # or "yolov11n.pt"
 REID_MODEL_NAME = "osnet_x1_0"
 REID_MODEL_PATH = os.path.expanduser("~/.cache/torch/checkpoints/osnet_x1_0_imagenet.pth")
@@ -22,7 +21,6 @@ LOCAL_EMB_HISTORY = 10 # smoother local embeddings
 GLOBAL_EMA_ALPHA = 0.9 # stronger memory
 GLOBAL_EXPIRE_SEC = 120
 
-# ----------------- Models -----------------
 print("Device:", DEVICE)
 yolo_model = YOLO(YOLO_WEIGHTS)
 yolo_model.to(DEVICE)
@@ -33,7 +31,6 @@ extractor = FeatureExtractor(
     device=DEVICE
 )
 
-# ----------------- Shared Global State -----------------
 global_gallery = {}   # gid -> {"feat": np.array, "last_seen": timestamp, "cam": str}
 next_global_id = 0
 global_lock = threading.Lock()
@@ -41,7 +38,6 @@ global_lock = threading.Lock()
 local_emb_hist = {}
 local_emb_lock = threading.Lock()
 
-# ----------------- Utils -----------------
 def l2_normalize(v):
     return v / (np.linalg.norm(v) + 1e-12)
 
@@ -132,7 +128,6 @@ def match_global_id(avg_feature, cam_name, current_gids_in_frame,
         next_global_id += 1
         return gid
 
-# ----------------- Camera Thread -----------------
 def process_camera(cam_url, cam_name):
     print(f"[{cam_name}] starting, source={cam_url}")
     tracker = DeepSort(max_age=30, n_init=2, max_cosine_distance=0.3)
@@ -193,7 +188,6 @@ def process_camera(cam_url, cam_name):
     cv2.destroyWindow(cam_name)
     print(f"[{cam_name}] exiting")
 
-# ----------------- Main -----------------
 if __name__ == "__main__":
     camera_streams = [
         "vid3.mp4",
