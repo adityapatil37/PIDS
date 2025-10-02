@@ -13,15 +13,17 @@ from pymongo import MongoClient
 import datetime
 from collections import defaultdict, deque
 from numpy.linalg import norm
+import winsound
+import tkinter as tk
+from tkinter import messagebox
 
-# ----------------- Config -----------------
-YOLO_WEIGHTS = "yolov12n.pt"  # or yolov11n.pt
+YOLO_WEIGHTS = "yolov12n.pt"
 REID_MODEL_NAME = "osnet_x1_0"
 REID_MODEL_PATH = os.path.expanduser("~/.cache/torch/checkpoints/osnet_x1_0_imagenet.pth")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Matching params (tune these)
-STRICT_TH = 0.30       # strong match
+STRICT_TH = 0.35   # strong match
 LOOSE_TH = 0.55        # looser cross-camera match
 RATIO_MARGIN = 0.75    # ratio test: best / second_best must be < RATIO_MARGIN
 YOLO_CONF_TH = 0.45    # detection confidence threshold
@@ -34,20 +36,16 @@ CONSECUTIVE_UPDATES = 2     # require this many repeated confirmations to switch
 EMA_ALPHA_TRACK = 0.85      # EMA for updating per-track stored feature
 
 
-# Dashboard tile size
 TILE_W, TILE_H = 480, 360
 
-# Unknown logging
 UNKNOWN_SAVE_DIR = "unknown_crops"
 os.makedirs(UNKNOWN_SAVE_DIR, exist_ok=True)
 
-# ----------------- DB -----------------
 client = MongoClient("mongodb://localhost:27017/")
 db = client["person_reid"]
 people_col = db["people"]
 logs_col = db["logs"]
 
-# ----------------- Models -----------------
 print("Using device:", DEVICE)
 yolo_model = YOLO(YOLO_WEIGHTS)
 yolo_model.to(DEVICE)
@@ -58,7 +56,49 @@ extractor = FeatureExtractor(
     device=DEVICE
 )
 
-# ----------------- Helpers -----------------
+ALERT_UNKNOWN_SECONDS = 5   # must stay unknown for >=3 sec
+ALERT_COOLDOWN = 10         # minimum 10 sec between alerts per camera
+
+last_alert_time = {}
+
+def trigger_alert(frame, cam_name, tid):
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[ALERT] UNKNOWN detected on {cam_name} (track {tid}) at {ts}")
+
+    # Save snapshot
+    snap_path = f"alert_snapshots/{cam_name}_{tid}_{int(time.time())}.jpg"
+    os.makedirs("alert_snapshots", exist_ok=True)
+    cv2.imwrite(snap_path, frame)
+
+    # Play sound (non-blocking)
+    threading.Thread(target=lambda: winsound.Beep(1000, 700), daemon=True).start()
+
+    # GUI popup
+    show_popup(cam_name, tid)
+
+    
+def show_popup(cam_name, tid):
+    def popup():
+        root = tk.Tk()
+        root.title("🚨 Security Alert!")
+        root.geometry("300x150+100+100")
+        root.attributes("-topmost", True)  # always on top
+
+        msg = tk.Label(
+            root,
+            text=f"UNKNOWN person detected!\n\nCamera: {cam_name}\nTrack ID: {tid}",
+            fg="red", font=("Arial", 12), justify="center"
+        )
+        msg.pack(expand=True, padx=10, pady=20)
+
+        # Auto-close after 5 sec
+        root.after(5000, root.destroy)
+        root.mainloop()
+
+    threading.Thread(target=popup, daemon=True).start()
+
+
+
 def l2norm(v: np.ndarray):
     if v is None:
         return None
@@ -76,7 +116,6 @@ def extract_feature(frame, box):
     crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
     feat = extractor([crop_rgb])[0].cpu().numpy()
 
-    # Normalize feature vector
     feat = feat / (norm(feat) + 1e-12)
     return feat
 
@@ -113,7 +152,6 @@ def match_person(feat: np.ndarray, known_people):
     second_dist = 1.0
 
     for person in known_people:
-        # person["features"] is a list of pre-normalized numpy arrays
         dists = [float(cosine(f, ex)) for ex in person["features"]]
         if not dists:
             continue
@@ -128,12 +166,9 @@ def match_person(feat: np.ndarray, known_people):
     if best_person is None:
         return None, None, None, False
 
-    # ratio test: ensure best is sufficiently better than second best
     ratio_ok = (best_dist / (second_dist + 1e-12)) < RATIO_MARGIN
 
-    # strong if below STRICT_TH and ratio_ok
     strong = (best_dist < STRICT_TH) and ratio_ok
-    # weak if below LOOSE_TH and ratio_ok
     weak = (best_dist < LOOSE_TH) and ratio_ok
 
     if strong:
@@ -193,11 +228,9 @@ def extract_feature_from_crop(frame, box, margin=0.05):
     feat = feat_t[0].cpu().numpy().flatten()
     return l2norm(feat)
 
-# ----------------- Shared state for dashboard -----------------
-latest_frames = {}   # cam_name -> BGR frame (resized)
+latest_frames = {}
 frames_lock = threading.Lock()
 
-# ----------------- Worker (per camera) -----------------
 from collections import defaultdict, deque
 
 def process_camera(source, cam_name, known_reload_interval=30):
@@ -205,9 +238,7 @@ def process_camera(source, cam_name, known_reload_interval=30):
     cap = cv2.VideoCapture(source)
     tracker = DeepSort(max_age=30, n_init=2, nms_max_overlap=1.0, max_cosine_distance=0.3)
 
-    # track_id -> info dict
     track_info = {}
-    # track vote history for switching identity: (track_id -> deque of candidate names)
     track_vote = defaultdict(lambda: deque(maxlen=CONSECUTIVE_UPDATES))
 
     known_people = load_known_people()
@@ -221,12 +252,10 @@ def process_camera(source, cam_name, known_reload_interval=30):
             break
         frame_idx += 1
 
-        # reload people periodically
         if time.time() - last_known_load > known_reload_interval:
             known_people = load_known_people()
             last_known_load = time.time()
 
-        # YOLO detections
         try:
             results = yolo_model(frame, verbose=False)
         except Exception as e:
@@ -250,7 +279,6 @@ def process_camera(source, cam_name, known_reload_interval=30):
             if not track.is_confirmed():
                 continue
 
-            # get bounding box (compatible with different deep_sort versions)
             ltrb = track.to_ltrb()
             try:
                 x1, y1, x2, y2 = [int(v) for v in ltrb]
@@ -268,8 +296,18 @@ def process_camera(source, cam_name, known_reload_interval=30):
                 "last_seen": time.time()
             })
             info["last_seen"] = time.time()
+                # --- ALERT CHECK ---
+            if info["name"] == "UNKNOWN":
+                elapsed = time.time() - info.get("first_unknown_time", time.time())
+                info.setdefault("first_unknown_time", time.time())
+                if elapsed >= ALERT_UNKNOWN_SECONDS:
+                    if time.time() - last_alert_time.get(cam_name, 0) > ALERT_COOLDOWN:
+                        trigger_alert(frame, cam_name, tid)
+                        last_alert_time[cam_name] = time.time()
+            else:
+                info.pop("first_unknown_time", None)
 
-            # Periodic re-ID check
+
             if (frame_idx - info["last_reid_frame"]) >= REID_INTERVAL:
                 feat = extract_feature_from_crop(frame, (x1, y1, x2, y2))
                 info["last_reid_frame"] = frame_idx
@@ -281,16 +319,14 @@ def process_camera(source, cam_name, known_reload_interval=30):
                     # Case A: currently unknown
                     if info["name"] == "UNKNOWN":
                         if new_conf >= MIN_CONF_ASSIGN:
-                            # immediate assign
+
                             info["name"] = name if name else "UNKNOWN"
                             info["role"] = role if role else ""
                             info["conf"] = new_conf
                             info["last_feat"] = feat.copy()
                         else:
-                            # low confidence: keep for votes
                             if name:
                                 track_vote[tid].append(name)
-                                # if seen same candidate enough times, adopt it
                                 if list(track_vote[tid]).count(name) >= CONSECUTIVE_UPDATES and new_conf > 0.25:
                                     info["name"] = name
                                     info["role"] = role
@@ -302,17 +338,13 @@ def process_camera(source, cam_name, known_reload_interval=30):
                         current_conf = info["conf"]
 
                         if name == current_name:
-                            # reinforce current identity: increase confidence (EMA)
                             info["conf"] = max(current_conf, new_conf)
                             if info["last_feat"] is None:
                                 info["last_feat"] = feat.copy()
                             else:
-                                # update last_feat via EMA for stability
                                 info["last_feat"] = EMA_ALPHA_TRACK * info["last_feat"] + (1 - EMA_ALPHA_TRACK) * feat
                                 info["last_feat"] = l2norm(info["last_feat"])
                         else:
-                            # different candidate found
-                            # immediate override if new_conf clearly better than old_conf
                             if new_conf > current_conf + CONF_MARGIN and new_conf >= MIN_CONF_ASSIGN and strong:
                                 info["name"] = name
                                 info["role"] = role
@@ -320,38 +352,31 @@ def process_camera(source, cam_name, known_reload_interval=30):
                                 info["last_feat"] = feat.copy()
                                 track_vote[tid].clear()
                             else:
-                                # collect vote for candidate; if repeated confirmations, then switch
                                 if name:
                                     track_vote[tid].append(name)
                                     counts = {c: track_vote[tid].count(c) for c in set(track_vote[tid])}
                                     top_candidate, top_count = max(counts.items(), key=lambda x: x[1])
                                     if top_candidate != current_name and top_count >= CONSECUTIVE_UPDATES and new_conf > 0.25:
-                                        # switch to consistently seen candidate
-                                        # fetch role from known_people
                                         rp = next((p for p in known_people if p["name"] == top_candidate), None)
                                         info["name"] = top_candidate
                                         info["role"] = rp["role"] if rp else ""
                                         info["conf"] = new_conf
                                         info["last_feat"] = feat.copy()
 
-            # write info back
             track_info[tid] = info
 
-            # Draw label using stable history (vote) optionally
             display_name = info["name"]
             color = (0, 200, 0) if display_name != "UNKNOWN" else (0, 0, 255)
             label = f"{display_name}" + (f" ({info['role']})" if info.get("role") else "")
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
             cv2.putText(frame, label, (x1, max(0, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.55, color, 2)
 
-        # update latest frame for dashboard
         with frames_lock:
             latest_frames[cam_name] = cv2.resize(frame, (TILE_W, TILE_H))
 
     cap.release()
     print(f"[{cam_name}] exiting")
 
-# ----------------- Dashboard stitching -----------------
 def draw_cam_label(frame, cam_name):
     # draw semi-transparent strip and put text
     overlay = frame.copy()
@@ -380,7 +405,6 @@ def dashboard_loop(camera_list):
                 f = draw_cam_label(f, cam_name)
                 frames.append(f)
 
-        # pad frames to grid size
         while len(frames) < grid_cols * grid_rows:
             frames.append(np.zeros((TILE_H, TILE_W, 3), dtype=np.uint8))
 
@@ -398,13 +422,12 @@ def dashboard_loop(camera_list):
 
     cv2.destroyAllWindows()
 
-# ----------------- Main -----------------
 if __name__ == "__main__":
     camera_list = [
-        # put your sources here (file paths, rtsp urls, or integers for webcams)
+        # sources
         ("vid3.mp4", "Camera_1"),
         ("vid4.mp4", "Camera_2"),
-        # (0, "Webcam")  # example for testing
+        # (0, "Webcam") 
     ]
 
     threads = []
@@ -413,13 +436,11 @@ if __name__ == "__main__":
         t.start()
         threads.append(t)
 
-    # Run dashboard loop in main thread (blocks until 'q')
     try:
         dashboard_loop(camera_list)
     except KeyboardInterrupt:
         print("Interrupted by user")
 
-    # wait for workers to finish (they are daemon threads; join briefly)
     for t in threads:
         t.join(timeout=1.0)
     print("Exiting.")
