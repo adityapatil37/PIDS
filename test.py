@@ -1,6 +1,6 @@
-import torch
+import datetime
+from zoneinfo import ZoneInfo
 
-if torch.cuda.is_available():
-    print("CUDA is available.")
-else:
-    print("CUDA is not available.")
+# Use a specific, timezone-aware datetime for consistent examples
+now = datetime.datetime.now(ZoneInfo("Asia/Kolkata"))
+print(f"Current Time: {now.strftime('%Y-%m-%d %H:%M:%S')}")

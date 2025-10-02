@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Edit Person</title>
+</head>
+<body>
+  <h1>Edit Person</h1>
+  <form method="POST" enctype="multipart/form-data">
+    <label>Name:</label><br>
+    <input type="text" name="name" value="{{ person['name'] }}" required><br><br>
+
+    <label>Role:</label><br>
+    <input type="text" name="role" value="{{ person['role'] }}" required><br><br>
+
+    <label>Existing Images:</label><br>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      {% for img in person['images'] %}
+        <img src="{{ '/' + img }}" width="100">
+      {% endfor %}
+    </div>
+    <br>
+
+    <label>Upload New Images (optional):</label><br>
+    <input type="file" name="images" multiple><br><br>
+
+    <button type="submit">Save Changes</button>
+  </form>
+</body>
+</html>

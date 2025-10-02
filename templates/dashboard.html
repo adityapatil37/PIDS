@@ -1,68 +1,278 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Surveillance Dashboard</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Surveillance Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; background: #111; color: #eee; }
-    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .camera { background: #222; padding: 10px; border-radius: 8px; }
-    .camera h3 { margin: 0 0 5px; }
-    img { width: 100%; border-radius: 8px; }
-    #log { margin-top: 20px; max-height: 250px; overflow-y: auto; background: #333; padding: 10px; }
-    .camera-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-.camera-feed {
-  border: 1px solid #ccc;
-  padding: 10px;
-  border-radius: 10px;
-  background: #f8f8f8;
-}
+    :root {
+      --bg-color: #0f0f1b; /* Even darker space blue */
+      --primary-color: #00cyan;
+      --text-color: #e0e0e0;
+      --glow-color: rgba(0, 200, 200, 0.7);
+      --glass-color: rgba(26, 26, 46, 0.7); /* Semi-transparent glass */
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden; /* Hide scrollbars caused by canvas */
+    }
+    
+    #particle-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1; /* Place it behind everything */
+    }
+
+    .dashboard-container {
+      background: var(--glass-color);
+      padding: 40px 50px;
+      border-radius: 20px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.5), 0 0 25px var(--glow-color) inset;
+      text-align: center;
+      border: 1px solid var(--primary-color);
+      width: 90%;
+      max-width: 650px;
+      backdrop-filter: blur(10px); /* The magic for the frosted glass effect */
+      -webkit-backdrop-filter: blur(10px); /* For Safari */
+      animation: fadeInSlideUp 1s ease-out forwards;
+    }
+    
+    @keyframes fadeInSlideUp {
+        from {
+            opacity: 0;
+            transform: translateY(40px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .header h1 {
+      color: var(--primary-color);
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin: 0;
+      text-shadow: 0 0 15px var(--glow-color);
+    }
+
+    .header .subtitle {
+        font-size: 0.9em;
+        font-weight: 300;
+        color: var(--text-color);
+        margin-top: 5px;
+        margin-bottom: 40px;
+        letter-spacing: 1px;
+    }
+
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .links a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      padding: 18px 25px;
+      background: transparent;
+      color: var(--primary-color);
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 400;
+      font-size: 1.1em;
+      border: 2px solid var(--primary-color);
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(0, 200, 200, 0.3);
+    }
+    
+    .links a svg {
+        width: 24px;
+        height: 24px;
+        fill: var(--primary-color);
+        transition: fill 0.3s ease;
+    }
+
+    .links a:hover {
+      background: var(--primary-color);
+      color: var(--bg-color);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px var(--glow-color);
+    }
+    
+    .links a:hover svg {
+        fill: var(--bg-color);
+    }
+
   </style>
 </head>
 <body>
-  <h1>Surveillance Dashboard</h1>
-  <div class="grid" id="cameras"></div>
-  <h2>Live Logs</h2>
-  <div id="log"></div>
-  <div class="camera-grid">
-  <div class="camera-feed">
-    <h3>Camera 1</h3>
-    <img src="/video/Camera_1" width="400">
+
+  <canvas id="particle-canvas"></canvas>
+
+  <div class="dashboard-container">
+    <div class="header">
+      <h1>Command Center</h1>
+      <p class="subtitle">System Status: <span style="color:cyan;">Online</span></p>
+    </div>
+    <div class="links">
+      <a href="/camera">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 10.5V7c0-1.65-1.35-3-3-3H3C1.35 4 0 5.35 0 7v10c0 1.65 1.35 3 3 3h11c1.65 0 3-1.35 3-3v-3.5l4 4v-11l-4 4zM15 17H3V7h11v10z"/></svg>
+        Live Camera Feeds
+      </a>
+      <a href="/enrollment">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 8h-2v3h-3v2h3v3h2v-3h3v-2h-3V8zM4 6c0-1.11.89-2 2-2h8v2H6v12h12v-3h2v3c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V6z"/></svg>
+        Enroll New Person
+      </a>
+      <a href="/people">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        Manage Registered People
+      </a>
+    </div>
   </div>
-  <div class="camera-feed">
-    <h3>Camera 2</h3>
-    <img src="/video/Camera_2" width="400">
-  </div>
-</div>
 
-  <script>
-    const socket = io();
-    const cameras = ["Camera_1", "Camera_2"];
-    const grid = document.getElementById("cameras");
+<script>
+    const canvas = document.getElementById('particle-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    cameras.forEach(cam => {
-      const div = document.createElement("div");
-      div.className = "camera";
-      div.innerHTML = `<h3>${cam}</h3><img id="feed_${cam}" />`;
-      grid.appendChild(div);
+    let particlesArray;
 
-      socket.on(`frame_${cam}`, data => {
-        const blob = new Blob([data], { type: "image/jpeg" });
-        document.getElementById(`feed_${cam}`).src = URL.createObjectURL(blob);
-      });
+    const mouse = {
+        x: null,
+        y: null,
+        radius: (canvas.height/120) * (canvas.width/120)
+    };
+
+    window.addEventListener('mousemove', function(event) {
+        mouse.x = event.x;
+        mouse.y = event.y;
     });
 
-    socket.on("person_detected", data => {
-      const log = document.getElementById("log");
-      const msg = `[${data.time}] ${data.name} (${data.role}) in ${data.zone} on ${data.camera}`;
-      const p = document.createElement("div");
-      p.textContent = msg;
-      log.prepend(p);
+    class Particle {
+        constructor(x, y, directionX, directionY, size, color) {
+            this.x = x;
+            this.y = y;
+            this.directionX = directionX;
+            this.directionY = directionY;
+            this.size = size;
+            this.color = color;
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+            ctx.fillStyle = '#00c8c8';
+            ctx.fill();
+        }
+        update() {
+            if (this.x > canvas.width || this.x < 0) {
+                this.directionX = -this.directionX;
+            }
+            if (this.y > canvas.height || this.y < 0) {
+                this.directionY = -this.directionY;
+            }
+
+            let dx = mouse.x - this.x;
+            let dy = mouse.y - this.y;
+            let distance = Math.sqrt(dx*dx + dy*dy);
+            if (distance < mouse.radius + this.size){
+                if (mouse.x < this.x && this.x < canvas.width - this.size * 10) {
+                    this.x += 5;
+                }
+                if (mouse.x > this.x && this.x > this.size * 10) {
+                    this.x -= 5;
+                }
+                if (mouse.y < this.y && this.y < canvas.height - this.size * 10) {
+                    this.y += 5;
+                }
+                if (mouse.y > this.y && this.y > this.size * 10) {
+                    this.y -= 5;
+                }
+            }
+            this.x += this.directionX;
+            this.y += this.directionY;
+            this.draw();
+        }
+    }
+
+    function init() {
+        particlesArray = [];
+        let numberOfParticles = (canvas.height * canvas.width) / 9000;
+        for (let i = 0; i < numberOfParticles; i++) {
+            let size = (Math.random() * 2) + 1;
+            let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+            let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+            let directionX = (Math.random() * 0.4) - 0.2;
+            let directionY = (Math.random() * 0.4) - 0.2;
+            let color = '#00c8c8';
+
+            particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+        }
+    }
+
+    function connect() {
+        let opacityValue = 1;
+        for (let a = 0; a < particlesArray.length; a++) {
+            for (let b = a; b < particlesArray.length; b++) {
+                let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x))
+                + ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+                if (distance < (canvas.width/7) * (canvas.height/7)) {
+                    opacityValue = 1 - (distance/20000);
+                    ctx.strokeStyle = 'rgba(0, 200, 200,' + opacityValue + ')';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                    ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        ctx.clearRect(0,0,innerWidth, innerHeight);
+
+        for (let i = 0; i < particlesArray.length; i++) {
+            particlesArray[i].update();
+        }
+        connect();
+    }
+    
+    window.addEventListener('resize', function(){
+        canvas.width = innerWidth;
+        canvas.height = innerHeight;
+        mouse.radius = ((canvas.height/120) * (canvas.height/120));
+        init();
     });
-  </script>
+
+    window.addEventListener('mouseout', function(){
+        mouse.x = undefined;
+        mouse.y = undefined;
+    });
+
+    init();
+    animate();
+</script>
+
 </body>
 </html>

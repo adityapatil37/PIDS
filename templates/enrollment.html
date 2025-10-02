@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Enrollment</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .card { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    img { max-width: 120px; max-height: 120px; display: block; margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+<h2>Enroll New Person</h2>
+<form method="post" action="/enroll" enctype="multipart/form-data">
+    <label>Name: <input type="text" name="name" required></label><br>
+    <label>Role: <input type="text" name="role" required></label><br><br>
+
+    <p>Select saved crops (optional):</p>
+    {% for img in crops %}
+        <input type="checkbox" name="selected" value="{{ img }}">
+        <img src="{{ url_for('crops', filename=img) }}" width="100">
+    {% endfor %}
+    <br><br>
+
+    <p>Or upload new images (optional, multiple allowed):</p>
+    <input type="file" name="uploads" multiple accept="image/*"><br><br>
+
+    <button type="submit">Enroll Selected</button>
+</form>
+<hr>
+<a href="/">Home</a>
+</body>
+</html>
