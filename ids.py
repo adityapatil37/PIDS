@@ -45,6 +45,7 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["person_reid"]
 people_col = db["people"]
 logs_col = db["logs"]
+history_col = db["track_history"]
 
 print("Using device:", DEVICE)
 yolo_model = YOLO(YOLO_WEIGHTS)
@@ -76,6 +77,33 @@ def trigger_alert(frame, cam_name, tid):
     # GUI popup
     show_popup(cam_name, tid)
 
+# Track last log time per (camera, track_id) to avoid duplicate logs
+last_log_times = {}
+LOG_INTERVAL = 5
+
+
+def log_person_event(name, cam_name, tid, frame):
+    now = time.time()
+    key = (cam_name, tid)
+
+    # Avoid duplicate logging
+    if key in last_log_times and now - last_log_times[key] < LOG_INTERVAL:
+        return
+
+    last_log_times[key] = now
+
+    ts = datetime.datetime.utcnow()
+    # save a small thumbnail for quick reference
+    thumb_path = save_unknown_crop(frame, (0, 0, frame.shape[1], frame.shape[0]), cam_name)
+
+    history_col.insert_one({
+        "timestamp": ts,
+        "person_name": name,
+        "camera_name": cam_name,
+        "track_id": tid,
+        "thumbnail": thumb_path
+    })
+    print(f"[DB] Logged {name} on {cam_name}, track {tid} at {ts}")
     
 def show_popup(cam_name, tid):
     def popup():
@@ -370,6 +398,9 @@ def process_camera(source, cam_name, known_reload_interval=30):
             label = f"{display_name}" + (f" ({info['role']})" if info.get("role") else "")
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
             cv2.putText(frame, label, (x1, max(0, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.55, color, 2)
+            
+            if info["name"] != "UNKNOWN":
+                log_person_event(info["name"], cam_name, tid, frame)
 
         with frames_lock:
             latest_frames[cam_name] = cv2.resize(frame, (TILE_W, TILE_H))

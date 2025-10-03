@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 from pymongo import MongoClient
 import os
 import cv2
@@ -25,6 +25,7 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 client = MongoClient("mongodb://localhost:27017/")
 db = client["person_reid"]
 people_col = db["people"]
+history_col = db["track_history"]
 
 now = datetime.datetime.now(ZoneInfo("Asia/Kolkata"))
 
@@ -165,6 +166,23 @@ def delete_person(person_id):
     else:
         flash("Person not found.", "danger")
     return redirect(url_for("people"))
+
+@app.route("/history", methods=["GET", "POST"])
+def history():
+    query_name = None
+    results = []
+
+    if request.method == "POST":
+        query_name = request.form.get("name", "").strip()
+        if query_name:
+            # Fetch logs for that person sorted by latest first
+            results = list(history_col.find({"person_name": {"$regex": f"^{query_name}$", "$options": "i"}})
+                                         .sort("timestamp", -1))
+    return render_template("history.html", results=results, query_name=query_name)
+
+@app.route("/logs/<path:filename>")
+def logs(filename):
+    return send_from_directory("thumbnails", filename)
 
 if __name__ == "__main__":
     os.makedirs(CROP_FOLDER, exist_ok=True)

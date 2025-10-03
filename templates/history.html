@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Person Track History</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 20px; }
+        h1 { color: #333; }
+        form { margin-bottom: 20px; }
+        input[type=text] { padding: 8px; width: 250px; }
+        input[type=submit] { padding: 8px 15px; background: #007BFF; color: white; border: none; cursor: pointer; }
+        input[type=submit]:hover { background: #0056b3; }
+        .result-card {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            box-shadow: 0px 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+        }
+        .result-card     img {
+                height: 100px;
+                width: auto;
+                object-fit: cover;
+                border: 2px solid #ddd;
+                border-radius: 5px;
+            }
+        .result-card div { flex: 1; }
+        .timestamp { font-size: 0.9em; color: #666; }
+    </style>
+</head>
+<body>
+    <h1>🔎 Person Track History</h1>
+
+    <form method="POST">
+        <input type="text" name="name" placeholder="Enter person name" value="{{ query_name or '' }}" required>
+        <input type="submit" value="Search">
+    </form>
+
+    {% if results %}
+        <h2>Results for "{{ query_name }}"</h2>
+        {% for r in results %}
+            <div class="result-card">
+                {% if r.thumbnail %}
+                    <img src="{{ url_for('static', filename=r.thumbnail.replace('unknown_crops/', 'unknown_crops/')) }}" alt="Thumbnail">
+                {% endif %}
+                <div>
+                    <strong>{{ r.person_name }}</strong><br>
+                    Camera: {{ r.camera_name }}<br>
+                    Track ID: {{ r.track_id }}<br>
+                    <span class="timestamp">{{ r.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</span>
+                </div>
+            </div>
+        {% endfor %}
+    {% elif query_name %}
+        <p>No records found for <b>{{ query_name }}</b>.</p>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Search Track History</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .result { border: 1px solid #ccc; padding: 10px; margin: 10px; display: flex; align-items: center; }
+    .thumb { width: 100px; margin-right: 15px; }
+    .info { flex: 1; }
+  </style>
+</head>
+<body>
+  <h1>Search Track History</h1>
+  <form method="POST">
+    <input type="text" name="name" placeholder="Enter name" required>
+    <button type="submit">Search</button>
+  </form>
+
+  {% if query_name %}
+    <h2>Results for "{{ query_name }}"</h2>
+    {% for r in results %}
+      <div class="result">
+        <img src="/{{ r.thumbnail_path }}" class="thumb">
+        <div class="info">
+          <strong>{{ r.name }} ({{ r.role }})</strong><br>
+          Camera: {{ r.camera }}<br>
+          Track ID: {{ r.track_id }}<br>
+          Time: {{ r.timestamp }}
+        </div>
+      </div>
+    {% else %}
+      <p>No results found.</p>
+    {% endfor %}
+  {% endif %}
+</body>
+</html>
