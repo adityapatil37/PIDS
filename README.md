@@ -1,7 +1,3 @@
-Of course\! Here is a comprehensive `README.md` file for your Python application. This file explains the project's purpose, features, setup instructions, and configuration, making it easy for others (or your future self) to understand and use the code.
-
------
-
 # Multi-Camera Person Re-Identification System with Real-time Alerts
 
    
@@ -69,8 +65,8 @@ The pipeline for each camera stream operates as follows:
 ### 1\. Clone the Repository
 
 ```bash
-git clone <your-repository-url>
-cd <your-repository-name>
+git clone https://github.com/adityapatil37/PIDS.git
+cd PIDS
 ```
 
 ### 2\. Create a Virtual Environment & Install Dependencies
