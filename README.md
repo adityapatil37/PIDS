@@ -178,5 +178,7 @@ The application will start, process the camera feeds, and open a dashboard windo
   * **Cross-Camera Tracking**: Implement more advanced logic to see if a `track_id` that disappears from one camera reappears on another shortly after, enabling true cross-camera tracking.
   * **Performance Optimization**: Use TensorRT to optimize the models for higher FPS on NVIDIA GPUs.
 
+---
+## 📜 License & Acknowledgements
 Copyright © 2025 Aditya Patil. All rights reserved.
 This project and its contents may not be use, copied, modified, or distributed without explicit permission.
