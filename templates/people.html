@@ -3,38 +3,160 @@
 <head>
   <title>Registered People</title>
   <style>
-    .person { border: 1px solid #ccc; padding: 15px; margin: 10px; border-radius: 8px; }
-    .images { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-    .images img { width: 120px; border-radius: 6px; }
-    .actions { margin-top: 10px; }
+    /* --- General Body & Font Styles --- */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8f9fa; /* Light grey background */
+      color: #343a40;
+      margin: 0;
+      padding: 30px;
+    }
+    
+    /* --- Main Container & Header --- */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    h1 {
+      color: #212529;
+      margin: 0;
+    }
+
+    .home-btn {
+      background-color: #007bff;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: background-color 0.3s ease;
+    }
+
+    .home-btn:hover {
+      background-color: #0056b3;
+    }
+    
+    /* --- People Grid Layout --- */
+    .people-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 30px;
+    }
+
+    /* --- Person Card Styling --- */
+    .person {
+      background: #ffffff;
+      border: 1px solid #e9ecef;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .person:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .person h2 {
+        font-size: 1.5rem;
+        margin-top: 0;
+        margin-bottom: 5px;
+        color: #343a40;
+    }
+    
+    .person p {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+
+    /* --- Image Gallery in Card --- */
+    .images {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .images img {
+      width: 100px;
+      height: 100px;
+      border-radius: 8px;
+      object-fit: cover; /* Prevents image distortion */
+      border: 2px solid #f1f1f1;
+      transition: transform 0.2s ease;
+    }
+    
+    .images img:hover {
+        transform: scale(1.1);
+    }
+    
+    /* --- Action Buttons in Card --- */
+    .actions {
+      margin-top: 20px;
+    }
+
     .actions a {
       padding: 8px 15px;
       margin-right: 10px;
       text-decoration: none;
       border-radius: 6px;
       color: white;
+      font-weight: 500;
+      transition: opacity 0.3s ease, transform 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px; /* Space between emoji and text */
     }
-    .edit-btn { background: #28a745; }
-    .delete-btn { background: #dc3545; }
+    
+    .actions a:hover {
+        opacity: 0.85;
+        transform: translateY(-2px);
+    }
+
+    .edit-btn { background-color: #20c997; }
+    .delete-btn { background-color: #e74c3c; }
+    
   </style>
 </head>
 <body>
-  <h1>Registered People</h1>
-  <a href="/">Home</a>
-  {% for person in people %}
-    <div class="person">
-      <h2>{{ person['name'] }} ({{ person['role'] }})</h2>
-      <p>Enrolled: {{ person['registered_at'] }}</p>
-      <div class="images">
-        {% for img in person['images'] %}
-          <img src="{{ '/' + img }}" alt="photo">
-        {% endfor %}
-      </div>
-      <div class="actions">
-        <a href="/edit/{{ person['_id'] }}" class="edit-btn">✏️ Edit</a>
-        <a href="/delete/{{ person['_id'] }}" class="delete-btn" onclick="return confirm('Are you sure you want to delete this person?')">🗑️ Delete</a>
-      </div>
+
+  <div class="container">
+    <div class="header">
+      <h1>Registered People</h1>
+      <a href="/" class="home-btn">Home</a>
     </div>
-  {% endfor %}
+
+    <div class="people-grid">
+      {% for person in people %}
+        <div class="person">
+          <h2>{{ person['name'] }} ({{ person['role'] }})</h2>
+          <p>Enrolled: {{ person['registered_at'] }}</p>
+          <div class="images">
+            {% for img in person['images'] %}
+              <img src="{{ '/' + img }}" alt="Photo of {{ person['name'] }}">
+            {% endfor %}
+          </div>
+          <div class="actions">
+            <a href="/edit/{{ person['_id'] }}" class="edit-btn">✏️ Edit</a>
+            <a href="/delete/{{ person['_id'] }}" class="delete-btn" onclick="return confirm('Are you sure you want to delete this person?')">🗑️ Delete</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
 </body>
 </html>

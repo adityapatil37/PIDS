@@ -7,13 +7,14 @@ import uuid
 import numpy as np
 from torchreid.utils import FeatureExtractor
 from werkzeug.utils import secure_filename
-import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from bson.objectid import ObjectId
 from io import BytesIO
 import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+from fpdf import FPDF
 
 
 
@@ -30,8 +31,10 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["person_reid"]
 people_col = db["people"]
 history_col = db["track_history"]
+access_col = db["access_control"]
+alerts_col = db["alerts"]
 
-now = datetime.datetime.now(ZoneInfo("Asia/Kolkata"))
+now = datetime.now(ZoneInfo("Asia/Kolkata"))
 
 # Torchreid extractor
 extractor = FeatureExtractor(
@@ -95,7 +98,7 @@ def enroll():
                 features.append(feat.tolist())
 
     if features:
-        now = datetime.datetime.now(ZoneInfo("Asia/Kolkata"))
+        now = datetime.now(ZoneInfo("Asia/Kolkata"))
         record = {
             "name": name,
             "role": role,
@@ -281,6 +284,75 @@ def export_pdf(name):
 @app.route("/logs/<path:filename>")
 def logs(filename):
     return send_from_directory("thumbnails", filename)
+
+@app.route("/access-control")
+def access_control():
+    # Fetch all access configs
+    access_docs = list(access_col.find())
+    people = list(people_col.find({}, {"name": 1}))  # only get names
+    cameras = sorted({d["camera_name"] for d in access_docs} | {"Camera_1", "Camera_2", "Camera_3"})
+    return render_template("access_control.html", access_docs=access_docs, people=people, cameras=cameras)
+
+
+@app.route("/access-control/update", methods=["POST"])
+def update_access_control():
+    cam_name = request.form.get("camera_name")
+    allowed_people = request.form.getlist("allowed_people")
+
+    if not cam_name:
+        flash("Camera name missing!", "error")
+        return redirect(url_for("access_control"))
+
+    access_col.update_one(
+        {"camera_name": cam_name},
+        {"$set": {"allowed_people": allowed_people}},
+        upsert=True
+    )
+    flash(f"Access list updated for {cam_name}", "success")
+    return redirect(url_for("access_control"))
+
+
+@app.route("/alerts", methods=["GET"])
+def alerts():
+    """Display all generated alerts from the alerts collection."""
+    alerts_data = list(alerts_col.find().sort("timestamp", -1))  # newest first
+    return render_template("alerts.html", alerts=alerts_data)
+
+
+@app.route("/export_alerts_excel")
+def export_alerts_excel():
+    alerts_data = list(alerts_col.find())
+    if not alerts_data:
+        return "No data available", 404
+
+    df = pd.DataFrame(alerts_data)
+    df.drop("_id", axis=1, inplace=True)
+    file_path = "static/exports/alerts_log.xlsx"
+    df.to_excel(file_path, index=False)
+    return send_file(file_path, as_attachment=True)
+
+@app.route("/export_alerts_pdf")
+def export_alerts_pdf():
+    alerts_data = list(alerts_col.find())
+    if not alerts_data:
+        return "No data available", 404
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="Alerts Log", ln=True, align="C")
+    pdf.ln(10)
+
+    for alert in alerts_data:
+        pdf.multi_cell(0, 10, txt=f"Person: {alert.get('person_name')}\n"
+                                  f"Camera: {alert.get('camera_name')}\n"
+                                  f"Type: {alert.get('alert_type')}\n"
+                                  f"Timestamp: {alert.get('timestamp')}\n", border=1)
+        pdf.ln(5)
+
+    file_path = "static/exports/alerts_log.pdf"
+    pdf.output(file_path)
+    return send_file(file_path, as_attachment=True)
 
 if __name__ == "__main__":
     os.makedirs(CROP_FOLDER, exist_ok=True)

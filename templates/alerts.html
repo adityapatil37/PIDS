@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Alerts Log</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+        .container { width: 90%; margin: 40px auto; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px; }
+        h2 { text-align: center; color: #333; margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background: #007BFF; color: white; }
+        tr:hover { background: #f1f1f1; }
+        .alert-image { width: 120px; border-radius: 6px; }
+        .export-buttons { text-align: right; margin-bottom: 15px; }
+        .export-buttons a { background: #007BFF; color: white; padding: 8px 15px; border-radius: 6px; text-decoration: none; margin-left: 5px; }
+        .export-buttons a:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>All Alerts Log</h2>
+
+        <div class="export-buttons">
+            <a href="{{ url_for('export_alerts_excel') }}">Export as Excel</a>
+            <a href="{{ url_for('export_alerts_pdf') }}">Export as PDF</a>
+            <a href="/">Home</a>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Person Name</th>
+                    <th>Camera</th>
+                    <th>Alert Type</th>
+                    <th>Timestamp</th>
+                    <th>Frame</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in alerts %}
+                <tr>
+                    <td>{{ alert.person_name }}</td>
+                    <td>{{ alert.camera_name }}</td>
+                    <td>{{ alert.alert_type }}</td>
+                    <td>{{ alert.timestamp }}</td>
+                    <td>
+                        {% if alert.frame_path %}
+                        <img src="{{ url_for('static', filename=alert.frame_path) }}" class="alert-image">
+                        {% else %}
+                        N/A
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

@@ -16,6 +16,7 @@ from numpy.linalg import norm
 import winsound
 import tkinter as tk
 from tkinter import messagebox
+import re
 
 YOLO_WEIGHTS = "yolov12n.pt"
 REID_MODEL_NAME = "osnet_x1_0"
@@ -46,6 +47,8 @@ db = client["person_reid"]
 people_col = db["people"]
 logs_col = db["logs"]
 history_col = db["track_history"]
+access_col = db["access_control"]
+alerts_col = db["alerts"]
 
 print("Using device:", DEVICE)
 yolo_model = YOLO(YOLO_WEIGHTS)
@@ -76,6 +79,32 @@ def trigger_alert(frame, cam_name, tid):
 
     # GUI popup
     show_popup(cam_name, tid)
+    
+def trigger_zone_alert(name, cam_name, frame, bbox):
+    """Alert if a known person enters a camera they are not allowed in."""
+    ts = datetime.datetime.now()
+    os.makedirs("alert_snapshots", exist_ok=True)
+
+    x, y, w, h = bbox
+    crop = frame[y:y+h, x:x+w]
+    thumb_name = f"{cam_name}_{name}_{int(time.time())}.jpg"
+    thumb_path = os.path.join("alert_snapshots", thumb_name)
+    cv2.imwrite(thumb_path, crop)
+
+    alerts_col.insert_one({
+        "timestamp": ts,
+        "person_name": name,
+        "camera_name": cam_name,
+        "status": "Unauthorized Zone Entry",
+        "thumbnail": thumb_path
+    })
+
+    print(f"[ZONE ALERT] {name} entered restricted camera: {cam_name} at {ts}")
+
+    # Optional: play sound + popup, same as unknown alert
+    threading.Thread(target=lambda: winsound.Beep(1200, 800), daemon=True).start()
+    show_popup(cam_name, f"{name} - Unauthorized Access")
+
 
 # Track last log time per (camera, track_id) to avoid duplicate logs
 last_log_times = {}
@@ -89,7 +118,7 @@ def log_person_event(name, cam_name, tid, frame, bbox):
         return
     last_log_times[key] = now
 
-    ts = datetime.datetime.utcnow()
+    ts = datetime.datetime.now()
 
     # Crop only the detected person
     x, y, w, h = bbox
@@ -121,6 +150,22 @@ def log_person_event(name, cam_name, tid, frame, bbox):
     })
     print(f"[DB] Logged {name} on {cam_name}, track {tid} at {ts}")
     
+def check_access_permission(person_name, cam_name, frame, bbox):
+    """Check DB if person is allowed in this camera zone; trigger alert if not."""
+    if not person_name:
+        return
+
+    # ✅ Skip uncertain matches like "Aditya (?)", "John (?)", etc.
+    if re.search(r"\(\?\)$", person_name.strip()):
+        return
+
+    access_doc = access_col.find_one({"camera_name": cam_name})
+    allowed_people = access_doc.get("allowed_people", []) if access_doc else []
+
+    if person_name not in allowed_people:
+        trigger_zone_alert(person_name, cam_name, frame, bbox)
+
+
 def show_popup(cam_name, tid):
     def popup():
         root = tk.Tk()
@@ -184,8 +229,6 @@ def load_known_people():
 def match_person(feat: np.ndarray, known_people):
     """
     Return (name, role, best_dist, strong_bool).
-    best_dist = min cosine distance to any exemplar across all people.
-    strong_bool indicates a strong match by strict threshold + ratio test.
     """
     if feat is None or len(known_people) == 0:
         return None, None, None, False
@@ -211,16 +254,17 @@ def match_person(feat: np.ndarray, known_people):
         return None, None, None, False
 
     ratio_ok = (best_dist / (second_dist + 1e-12)) < RATIO_MARGIN
-
     strong = (best_dist < STRICT_TH) and ratio_ok
     weak = (best_dist < LOOSE_TH) and ratio_ok
 
     if strong:
         return best_person["name"], best_person["role"], best_dist, True
     elif weak:
+        # ✅ Return as weak match but mark uncertain (not to be used for alerts/logs)
         return best_person["name"] + " (?)", best_person["role"], best_dist, False
     else:
         return None, None, None, False
+
 
 
 def dist_to_conf(dist):
@@ -415,9 +459,13 @@ def process_camera(source, cam_name, known_reload_interval=30):
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
             cv2.putText(frame, label, (x1, max(0, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.55, color, 2)
             
-            if info["name"] != "UNKNOWN":
-                bbox = (x1, y1, x2 - x1, y2 - y1)  # width/height style bbox
+            # ✅ Only log or trigger zone alerts for valid identities
+            if info["name"] and info["name"].strip().upper() not in ["UNKNOWN", "NAME (?)"]:
+                bbox = (x1, y1, x2 - x1, y2 - y1)
                 log_person_event(info["name"], cam_name, tid, frame, bbox)
+                check_access_permission(info["name"], cam_name, frame, bbox)
+
+
 
 
         with frames_lock:
