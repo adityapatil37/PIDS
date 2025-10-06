@@ -135,7 +135,7 @@ Open `app.py` and modify these sections:
 Execute the script from your terminal:
 
 ```bash
-python app.py
+python ids.py
 ```
 
 The application will start, connect to the database, process the camera feeds, and open a dashboard window. Press **'q'** with the dashboard window in focus to quit.
