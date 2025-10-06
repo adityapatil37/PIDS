@@ -82,26 +82,42 @@ last_log_times = {}
 LOG_INTERVAL = 5
 
 
-def log_person_event(name, cam_name, tid, frame):
+def log_person_event(name, cam_name, tid, frame, bbox):
     now = time.time()
     key = (cam_name, tid)
-
-    # Avoid duplicate logging
     if key in last_log_times and now - last_log_times[key] < LOG_INTERVAL:
         return
-
     last_log_times[key] = now
 
     ts = datetime.datetime.utcnow()
-    # save a small thumbnail for quick reference
-    thumb_path = save_unknown_crop(frame, (0, 0, frame.shape[1], frame.shape[0]), cam_name)
+
+    # Crop only the detected person
+    x, y, w, h = bbox
+    x1, y1 = max(0, x), max(0, y)
+    x2, y2 = min(frame.shape[1], x + w), min(frame.shape[0], y + h)
+    person_crop = frame[y1:y2, x1:x2]
+
+    # Ensure the folder exists
+    thumb_dir = os.path.join("static", "thumbnails")
+    os.makedirs(thumb_dir, exist_ok=True)
+
+    # Generate filename
+    thumb_name = f"{cam_name}_{tid}_{int(time.time())}.jpg"
+    thumb_path = os.path.join(thumb_dir, thumb_name)
+
+    # Save cropped image
+    import cv2
+    cv2.imwrite(thumb_path, person_crop)
+
+    # Store web path for the UI
+    web_thumb_path = f"/static/thumbnails/{thumb_name}"
 
     history_col.insert_one({
         "timestamp": ts,
         "person_name": name,
         "camera_name": cam_name,
         "track_id": tid,
-        "thumbnail": thumb_path
+        "thumbnail": web_thumb_path
     })
     print(f"[DB] Logged {name} on {cam_name}, track {tid} at {ts}")
     
@@ -400,7 +416,9 @@ def process_camera(source, cam_name, known_reload_interval=30):
             cv2.putText(frame, label, (x1, max(0, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.55, color, 2)
             
             if info["name"] != "UNKNOWN":
-                log_person_event(info["name"], cam_name, tid, frame)
+                bbox = (x1, y1, x2 - x1, y2 - y1)  # width/height style bbox
+                log_person_event(info["name"], cam_name, tid, frame, bbox)
+
 
         with frames_lock:
             latest_frames[cam_name] = cv2.resize(frame, (TILE_W, TILE_H))

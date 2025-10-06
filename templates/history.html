@@ -1,59 +1,192 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Person Track History</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 20px; }
-        h1 { color: #333; }
-        form { margin-bottom: 20px; }
-        input[type=text] { padding: 8px; width: 250px; }
-        input[type=submit] { padding: 8px 15px; background: #007BFF; color: white; border: none; cursor: pointer; }
-        input[type=submit]:hover { background: #0056b3; }
-        .result-card {
-            background: white;
-            padding: 15px;
-            margin-bottom: 10px;
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #0d0d0d;
+            color: #f2f2f2;
+            margin: 0;
+            padding: 40px;
+        }
+        h1 {
+            text-align: center;
+            color: #00bcd4;
+        }
+        form {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+        input, select {
+            padding: 10px;
             border-radius: 6px;
-            box-shadow: 0px 2px 4px rgba(0,0,0,0.1);
+            border: none;
+            outline: none;
+        }
+        button {
+            background-color: #00bcd4;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #0097a7;
+        }
+        .timeline {
+            max-width: 950px;
+            margin: auto;
+        }
+        .entry {
+            background: #1a1a1a;
+            margin: 15px 0;
+            border-radius: 10px;
+            padding: 15px;
             display: flex;
             align-items: center;
+            transition: transform 0.2s, background 0.3s;
         }
-        .result-card     img {
-                height: 100px;
-                width: auto;
-                object-fit: cover;
-                border: 2px solid #ddd;
-                border-radius: 5px;
-            }
-        .result-card div { flex: 1; }
-        .timestamp { font-size: 0.9em; color: #666; }
+        .entry:hover {
+            transform: scale(1.02);
+            background: #242424;
+        }
+        .thumb {
+            width: 120px;
+            height: 120px;
+            overflow: hidden;
+            border-radius: 10px;
+            margin-right: 20px;
+            flex-shrink: 0;
+            cursor: pointer;
+            border: 2px solid #333;
+        }
+        .thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        .thumb:hover img {
+            transform: scale(1.1);
+        }
+        .info {
+            flex: 1;
+        }
+        .timestamp {
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* Lightbox popup */
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            align-items: center;
+            justify-content: center;
+        }
+        .lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.6);
+        }
+        .lightbox:target {
+            display: flex;
+        }
+        .close-btn {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            color: #fff;
+            font-size: 30px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .close-btn:hover {
+            color: #00bcd4;
+        }
+
+            .btn {
+        display: inline-block;
+        background: #4CAF50;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        text-decoration: none;
+        margin-right: 8px;
+    }
+    .btn:hover {
+        background: #45a049;
+    }
     </style>
 </head>
 <body>
-    <h1>🔎 Person Track History</h1>
+    <h1>🔍 Track History Dashboard</h1>
 
     <form method="POST">
-        <input type="text" name="name" placeholder="Enter person name" value="{{ query_name or '' }}" required>
-        <input type="submit" value="Search">
+        <input type="text" name="name" placeholder="Person name" value="{{ query_name or '' }}">
+        <select name="camera">
+            <option value="">All Cameras</option>
+            {% for cam in all_cameras %}
+            <option value="{{ cam }}" {% if camera_filter == cam %}selected{% endif %}>{{ cam }}</option>
+            {% endfor %}
+        </select>
+        <input type="date" name="start_date" value="{{ start_date or '' }}">
+        <input type="date" name="end_date" value="{{ end_date or '' }}">
+        <select name="sort_order">
+            <option value="-1" {% if sort_order == -1 %}selected{% endif %}>Newest First</option>
+            <option value="1" {% if sort_order == 1 %}selected{% endif %}>Oldest First</option>
+        </select>
+        <button type="submit">Search</button>
     </form>
+{% if query_name %}
+<div style="margin-top: 10px;">
+    <a href="{{ url_for('export_excel', name=query_name) }}" class="btn">📊 Export Excel</a>
+    <a href="{{ url_for('export_pdf', name=query_name) }}" class="btn">📄 Export PDF</a>
+</div>
+{% endif %}
 
     {% if results %}
-        <h2>Results for "{{ query_name }}"</h2>
-        {% for r in results %}
-            <div class="result-card">
-                {% if r.thumbnail %}
-                    <img src="{{ url_for('static', filename=r.thumbnail.replace('unknown_crops/', 'unknown_crops/')) }}" alt="Thumbnail">
-                {% endif %}
-                <div>
-                    <strong>{{ r.person_name }}</strong><br>
-                    Camera: {{ r.camera_name }}<br>
-                    Track ID: {{ r.track_id }}<br>
-                    <span class="timestamp">{{ r.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</span>
+    <div class="timeline">
+        {% for item in results %}
+        <div class="entry">
+            <div class="thumb">
+                {% if item.thumbnail %}
+                <a href="#popup{{ loop.index }}">
+                    <img src="{{ item.thumbnail }}" alt="Thumbnail">
+                </a>
+                <div id="popup{{ loop.index }}" class="lightbox">
+                    <a href="#" class="close-btn">&times;</a>
+                    <img src="{{ item.thumbnail }}" alt="Full image">
                 </div>
+                {% else %} 
+                <div style="width:100%;height:100%;background:#444;display:flex;align-items:center;justify-content:center;">No Image</div>
+                {% endif %}
             </div>
+            <div class="info">
+                <h3>{{ item.person_name }}</h3>
+                <p>📹 Camera: <strong>{{ item.camera_name }}</strong></p>
+                <p class="timestamp">🕓 {{ item.formatted_time }}</p>
+            </div>
+        </div>
         {% endfor %}
-    {% elif query_name %}
-        <p>No records found for <b>{{ query_name }}</b>.</p>
+    </div>
+    {% elif query_name or camera_filter %}
+    <p style="text-align:center;">No records found for given filters.</p>
     {% endif %}
 </body>
 </html>

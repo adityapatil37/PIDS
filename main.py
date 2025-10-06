@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, send_file
 from pymongo import MongoClient
 import os
 import cv2
@@ -10,6 +10,10 @@ from werkzeug.utils import secure_filename
 import datetime
 from zoneinfo import ZoneInfo
 from bson.objectid import ObjectId
+from io import BytesIO
+import pandas as pd
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 
 
@@ -167,18 +171,112 @@ def delete_person(person_id):
         flash("Person not found.", "danger")
     return redirect(url_for("people"))
 
+from datetime import datetime
+
 @app.route("/history", methods=["GET", "POST"])
 def history():
     query_name = None
     results = []
+    camera_filter = None
+    start_date = None
+    end_date = None
+    sort_order = -1  # newest first by default
 
     if request.method == "POST":
         query_name = request.form.get("name", "").strip()
+        camera_filter = request.form.get("camera", "").strip()
+        start_date = request.form.get("start_date")
+        end_date = request.form.get("end_date")
+        sort_order = int(request.form.get("sort_order", "-1"))
+
+        query = {}
         if query_name:
-            # Fetch logs for that person sorted by latest first
-            results = list(history_col.find({"person_name": {"$regex": f"^{query_name}$", "$options": "i"}})
-                                         .sort("timestamp", -1))
-    return render_template("history.html", results=results, query_name=query_name)
+            query["person_name"] = {"$regex": f"^{query_name}$", "$options": "i"}
+
+        if camera_filter:
+            query["camera_name"] = {"$regex": f"^{camera_filter}$", "$options": "i"}
+
+        # Date range filter
+        if start_date or end_date:
+            query["timestamp"] = {}
+            if start_date:
+                query["timestamp"]["$gte"] = datetime.strptime(start_date, "%Y-%m-%d")
+            if end_date:
+                query["timestamp"]["$lte"] = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
+
+        # Fetch results
+        results = list(
+            history_col.find(query).sort("timestamp", sort_order)
+        )
+
+        # Format time for UI
+        for r in results:
+            r["formatted_time"] = r["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
+            if r.get("thumbnail") and not r["thumbnail"].startswith("/static/"):
+                r["thumbnail"] = "/static/" + os.path.relpath(r["thumbnail"], "static").replace("\\", "/")
+
+    # For filter dropdowns
+    all_cameras = sorted(set([x["camera_name"] for x in history_col.find({}, {"camera_name": 1})]))
+
+    return render_template(
+        "history.html",
+        results=results,
+        query_name=query_name,
+        all_cameras=all_cameras,
+        camera_filter=camera_filter,
+        start_date=start_date,
+        end_date=end_date,
+        sort_order=sort_order,
+    )
+
+@app.route("/export/excel/<name>")
+def export_excel(name):
+    logs = list(history_col.find({"person_name": {"$regex": f"^{name}$", "$options": "i"}})
+                          .sort("timestamp", -1))
+
+    if not logs:
+        return "No records found", 404
+
+    df = pd.DataFrame(logs)
+    df["_id"] = df["_id"].astype(str)
+    df["timestamp"] = df["timestamp"].astype(str)
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name="History")
+
+    output.seek(0)
+    filename = f"{name}_history_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    return send_file(output, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+@app.route("/export/pdf/<name>")
+def export_pdf(name):
+    logs = list(history_col.find({"person_name": {"$regex": f"^{name}$", "$options": "i"}})
+                          .sort("timestamp", -1))
+
+    if not logs:
+        return "No records found", 404
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    pdf.setFont("Helvetica", 12)
+    pdf.drawString(200, height - 40, f"Attendance History for {name}")
+    y = height - 80
+
+    for log in logs:
+        pdf.drawString(50, y, f"Time: {log['timestamp']} | Status: {log.get('status', 'Unknown')}")
+        y -= 20
+        if y < 50:
+            pdf.showPage()
+            pdf.setFont("Helvetica", 12)
+            y = height - 50
+
+    pdf.save()
+    buffer.seek(0)
+    filename = f"{name}_history_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype="application/pdf")
 
 @app.route("/logs/<path:filename>")
 def logs(filename):
