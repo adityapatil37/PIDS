@@ -181,4 +181,4 @@ The application will start, process the camera feeds, and open a dashboard windo
 ---
 ## 📜 License & Acknowledgements
 Copyright © 2025 Aditya Patil. All rights reserved.
-This project and its contents may not be use, copied, modified, or distributed without explicit permission.
+This project and its contents may not be used, copied, modified, or distributed without explicit permission.
