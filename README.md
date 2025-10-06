@@ -172,8 +172,6 @@ The application will start, process the camera feeds, and open a dashboard windo
 
 ## 💡 Future Enhancements
 
-  * **Web-Based UI**: Replace the OpenCV/Tkinter UI with a web interface (e.g., using Flask/FastAPI and WebSockets) for remote access and a better user experience.
-  * **Enrollment Script**: Create a utility script to easily enroll new people by processing a folder of their images to generate and save feature vectors to MongoDB.
   * **Advanced Alerting**: Integrate with services like Twilio (SMS), SendGrid (email), or Slack/Discord for more robust notifications.
   * **Cross-Camera Tracking**: Implement more advanced logic to see if a `track_id` that disappears from one camera reappears on another shortly after, enabling true cross-camera tracking.
   * **Performance Optimization**: Use TensorRT to optimize the models for higher FPS on NVIDIA GPUs.
