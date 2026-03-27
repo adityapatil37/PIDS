@@ -1,194 +1,346 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Enrollment</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enroll — SentinelView</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
-    /* --- General Body & Font Styles --- */
+    :root {
+      --bg:      #080c10;
+      --surface: #0d1117;
+      --surface2: #111820;
+      --border:  #1e2d3d;
+      --accent:  #00e5ff;
+      --warn:    #ff6b35;
+      --safe:    #39d353;
+      --text:    #c9d1d9;
+      --dim:     #58687a;
+      --mono:    'Share Tech Mono', monospace;
+      --sans:    'Barlow', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f4f7f6;
-      margin: 0;
-      padding: 40px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ───────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-decoration: none;
+    }
+    .logo span { color: var(--dim); }
+    .nav-back {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--dim);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      padding: 5px 13px;
+      border-radius: 3px;
+      transition: color .2s, border-color .2s;
+    }
+    .nav-back:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Page ─────────────────────────────────── */
+    main {
+      flex: 1;
       display: flex;
       justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      width: 100%;
+      max-width: 640px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
       align-items: center;
-      min-height: 100vh;
-      color: #333;
+      gap: 10px;
+    }
+    .card-header-icon {
+      width: 32px; height: 32px;
+      background: rgba(0,229,255,.08);
+      border: 1px solid rgba(0,229,255,.2);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .card-header-icon svg { width: 16px; height: 16px; fill: var(--accent); }
+    .card-title {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      color: var(--accent);
+      text-transform: uppercase;
     }
 
-    /* --- Main Container --- */
-    .container {
-      background: #ffffff;
-      padding: 30px 40px;
-      border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-      width: 100%;
-      max-width: 600px;
+    .card-body { padding: 24px; }
+
+    /* ── Form ─────────────────────────────────── */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
     }
 
-    h2 {
-      text-align: center;
-      color: #2c3e50;
-      margin-bottom: 30px;
-      font-weight: 600;
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 1.5px;
+      color: var(--dim);
+      text-transform: uppercase;
     }
-
-    p {
-      font-weight: 500;
-      color: #555;
-      margin-top: 25px;
-      margin-bottom: 15px;
-    }
-    
-    hr {
-      border: 0;
-      border-top: 1px solid #e0e0e0;
-      margin: 30px 0;
-    }
-
-    /* --- Form Styling --- */
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      box-sizing: border-box; /* Important for padding and width */
-      transition: border-color 0.3s, box-shadow 0.3s;
-    }
-
-    input[type="text"]:focus {
+    .field input[type="text"] {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      transition: border-color .2s;
       outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 5px rgba(0, 123, 255, 0.25);
     }
-    
-    input[type="file"] {
-      width: 100%;
-      padding: 10px;
-      border: 1px dashed #ccc;
-      border-radius: 8px;
-      cursor: pointer;
+    .field input[type="text"]:focus { border-color: var(--accent); }
+    .field input[type="text"]::placeholder { color: var(--dim); }
+
+    /* ── Section divider ──────────────────────── */
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 1.5px;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-label::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
     }
 
-    /* --- Image Selection Grid --- */
+    /* ── Crop grid ────────────────────────────── */
     .crop-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 15px;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 10px;
+      margin-bottom: 24px;
     }
 
     .crop-card {
       position: relative;
       cursor: pointer;
-      display: block;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+      transition: border-color .2s;
+      aspect-ratio: 1;
     }
-    
     .crop-card img {
-      width: 100%;
-      height: 100px;
+      width: 100%; height: 100%;
       object-fit: cover;
       display: block;
-      border-radius: 8px;
-      border: 3px solid transparent;
-      transition: all 0.3s ease;
+      transition: opacity .2s;
     }
-    
-    .crop-card:hover img {
-        transform: scale(1.05);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-
-    /* Hide the default checkbox */
-    .crop-card input[type="checkbox"] {
-      display: none;
-    }
-
-    /* Style the image when its checkbox is checked */
+    .crop-card:hover { border-color: var(--dim); }
+    .crop-card input[type="checkbox"] { display: none; }
     .crop-card input[type="checkbox"]:checked + img {
-      border-color: #007bff;
-      box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
-      transform: scale(1.05);
+      opacity: .75;
+    }
+    .crop-card input[type="checkbox"]:checked ~ .check-mark { display: flex; }
+    .check-mark {
+      display: none;
+      position: absolute; inset: 0;
+      align-items: center; justify-content: center;
+      background: rgba(0,229,255,.15);
+      border: 2px solid var(--accent);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+    .check-mark svg { width: 22px; height: 22px; fill: var(--accent); }
+    .crop-card:has(input:checked) { border-color: var(--accent); }
+
+    .empty-crops {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--border);
+      text-align: center;
+      padding: 20px;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      margin-bottom: 24px;
     }
 
-    /* --- Button and Link Styling --- */
-    button[type="submit"] {
-      width: 100%;
-      padding: 15px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
+    /* ── File upload ──────────────────────────── */
+    .upload-zone {
+      position: relative;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      padding: 22px;
+      text-align: center;
       cursor: pointer;
-      transition: background-color 0.3s, transform 0.2s;
-      margin-top: 20px;
+      transition: border-color .2s, background .2s;
+      margin-bottom: 28px;
+    }
+    .upload-zone:hover { border-color: var(--accent); background: rgba(0,229,255,.03); }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-zone-icon {
+      margin-bottom: 8px;
+    }
+    .upload-zone-icon svg { width: 24px; height: 24px; fill: var(--dim); }
+    .upload-zone-text {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--dim);
+      letter-spacing: 1px;
+    }
+    .upload-zone-text b { color: var(--accent); font-weight: 400; }
+    #file-count {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      color: var(--safe);
+      margin-top: 6px;
     }
 
-    button[type="submit"]:hover {
-      background-color: #0056b3;
-      transform: translateY(-2px);
+    /* ── Submit ───────────────────────────────── */
+    .btn-submit {
+      width: 100%;
+      padding: 13px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .2s, color .2s;
     }
-    
-    .home-link {
-        display: block;
-        text-align: center;
-        color: #007bff;
-        text-decoration: none;
-        font-weight: 500;
-        margin-top: 20px;
-    }
-    
-    .home-link:hover {
-        text-decoration: underline;
-    }
-
+    .btn-submit:hover { background: var(--accent); color: #080c10; }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <h2>Enroll New Person</h2>
-  <form method="post" action="/enroll" enctype="multipart/form-data">
-    <div class="form-group">
-      <label for="name">Name:</label>
-      <input type="text" id="name" name="name" required>
+<header>
+  <a class="logo" href="/">SENTINEL<span>VIEW</span></a>
+  <a class="nav-back" href="/">← Dashboard</a>
+</header>
+
+<main>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M19 8h-2v3h-3v2h3v3h2v-3h3v-2h-3V8zM4 6c0-1.11.89-2 2-2h8v2H6v12h12v-3h2v3c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V6z"/>
+        </svg>
+      </div>
+      <span class="card-title">Enroll New Person</span>
     </div>
 
-    <div class="form-group">
-      <label for="role">Role:</label>
-      <input type="text" id="role" name="role" required>
+    <div class="card-body">
+      <form method="post" action="/enroll" enctype="multipart/form-data">
+
+        <!-- Name + Role -->
+        <div class="form-row">
+          <div class="field">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" placeholder="Full name" required>
+          </div>
+          <div class="field">
+            <label for="role">Role</label>
+            <input type="text" id="role" name="role" placeholder="e.g. Staff, Visitor" required>
+          </div>
+        </div>
+
+        <!-- Saved crops -->
+        <div class="section-label">Select saved crops</div>
+        {% if images %}
+          <div class="crop-grid">
+            {% for img in images %}
+              <label class="crop-card">
+                <input type="checkbox" name="selected" value="{{ img }}">
+                <img src="/crops/unknown/{{ img }}" alt="{{ img }}">
+                <div class="check-mark">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                  </svg>
+                </div>
+              </label>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-crops">No saved crops available</div>
+        {% endif %}
+
+        <!-- Upload -->
+        <div class="section-label">Upload images</div>
+        <div class="upload-zone">
+          <input type="file" name="uploads" multiple accept="image/*"
+                 onchange="updateCount(this)">
+          <div class="upload-zone-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+            </svg>
+          </div>
+          <div class="upload-zone-text">
+            Drop images here or <b>click to browse</b>
+          </div>
+          <div id="file-count"></div>
+        </div>
+
+        <button type="submit" class="btn-submit">Enroll Person →</button>
+      </form>
     </div>
+  </div>
+</main>
 
-    <p>Select saved crops (optional):</p>
-    <div class="crop-grid">
-      {% for img in crops %}
-        <label class="crop-card">
-          <input type="checkbox" name="selected" value="{{ img }}">
-          <img src="{{ url_for('crops', filename=img) }}" alt="Crop Image">
-        </label>
-      {% endfor %}
-    </div>
-
-    <p>Or upload new images (optional, multiple allowed):</p>
-    <input type="file" name="uploads" multiple accept="image/*">
-
-    <button type="submit">Enroll Person</button>
-  </form>
-  <hr>
-  <a href="/" class="home-link">Home</a>
-</div>
+<script>
+  function updateCount(input) {
+    const n = input.files.length;
+    document.getElementById("file-count").textContent =
+      n > 0 ? `${n} file${n > 1 ? "s" : ""} selected` : "";
+  }
+</script>
 
 </body>
 </html>

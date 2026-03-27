@@ -3,284 +3,330 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Surveillance Command Center</title>
+  <title>SentinelView — Command Center</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-color: #0f0f1b; /* Even darker space blue */
-      --primary-color: #00cyan;
-      --text-color: #e0e0e0;
-      --glow-color: rgba(0, 200, 200, 0.7);
-      --glass-color: rgba(26, 26, 46, 0.7); /* Semi-transparent glass */
+      --bg:      #080c10;
+      --surface: #0d1117;
+      --border:  #1e2d3d;
+      --accent:  #00e5ff;
+      --warn:    #ff6b35;
+      --safe:    #39d353;
+      --text:    #c9d1d9;
+      --dim:     #58687a;
+      --mono:    'Share Tech Mono', monospace;
+      --sans:    'Barlow', sans-serif;
     }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Poppins', Arial, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
       min-height: 100vh;
-      overflow: hidden; /* Hide scrollbars caused by canvas */
-    }
-    
-    #particle-canvas {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1; /* Place it behind everything */
-    }
-
-    .dashboard-container {
-      background: var(--glass-color);
-      padding: 40px 50px;
-      border-radius: 20px;
-      box-shadow: 0 0 40px rgba(0, 0, 0, 0.5), 0 0 25px var(--glow-color) inset;
-      text-align: center;
-      border: 1px solid var(--primary-color);
-      width: 90%;
-      max-width: 650px;
-      backdrop-filter: blur(10px); /* The magic for the frosted glass effect */
-      -webkit-backdrop-filter: blur(10px); /* For Safari */
-      animation: fadeInSlideUp 1s ease-out forwards;
-    }
-    
-    @keyframes fadeInSlideUp {
-        from {
-            opacity: 0;
-            transform: translateY(40px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .header h1 {
-      color: var(--primary-color);
-      font-weight: 600;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin: 0;
-      text-shadow: 0 0 15px var(--glow-color);
-    }
-
-    .header .subtitle {
-        font-size: 0.9em;
-        font-weight: 300;
-        color: var(--text-color);
-        margin-top: 5px;
-        margin-bottom: 40px;
-        letter-spacing: 1px;
-    }
-
-    .links {
       display: flex;
       flex-direction: column;
-      gap: 20px;
     }
 
-    .links a {
+    /* ── Header ───────────────────────────────── */
+    header {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 15px;
-      padding: 18px 25px;
-      background: transparent;
-      color: var(--primary-color);
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-transform: uppercase;
       text-decoration: none;
-      border-radius: 12px;
-      font-weight: 400;
-      font-size: 1.1em;
-      border: 2px solid var(--primary-color);
-      transition: all 0.3s ease;
-      box-shadow: 0 0 10px rgba(0, 200, 200, 0.3);
     }
-    
-    .links a svg {
-        width: 24px;
-        height: 24px;
-        fill: var(--primary-color);
-        transition: fill 0.3s ease;
+    .logo span { color: var(--dim); }
+    .header-right {
+      display: flex; gap: 16px; align-items: center;
+      font-family: var(--mono); font-size: 0.7rem; color: var(--dim);
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--safe);
+      display: inline-block;
+      box-shadow: 0 0 6px var(--safe);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    #clock { color: var(--accent); }
+
+    /* ── Page body ─────────────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      gap: 40px;
     }
 
-    .links a:hover {
-      background: var(--primary-color);
-      color: var(--bg-color);
-      transform: translateY(-5px);
-      box-shadow: 0 10px 20px var(--glow-color);
+    /* ── Hero ──────────────────────────────────── */
+    .hero {
+      text-align: center;
     }
-    
-    .links a:hover svg {
-        fill: var(--bg-color);
+    .hero-title {
+      font-family: var(--mono);
+      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      color: var(--accent);
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .hero-sub {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--dim);
+      letter-spacing: 2px;
+    }
+    .hero-sub .online { color: var(--safe); }
+
+    /* ── Nav grid ──────────────────────────────── */
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      width: 100%;
+      max-width: 780px;
     }
 
+    .nav-card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 22px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--text);
+      transition: border-color .2s, background .2s, transform .18s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    /* accent bar on hover */
+    .nav-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .25s ease;
+    }
+    .nav-card:hover { 
+      border-color: rgba(0,229,255,.35);
+      background: #0e1620;
+      transform: translateY(-3px);
+    }
+    .nav-card:hover::before { transform: scaleX(1); }
+
+    .nav-card.warn-card::before { background: var(--warn); }
+    .nav-card.warn-card:hover { border-color: rgba(255,107,53,.35); }
+
+    .nav-icon {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,229,255,.08);
+      border: 1px solid rgba(0,229,255,.2);
+      border-radius: 4px;
+    }
+    .nav-icon svg {
+      width: 18px; height: 18px;
+      fill: var(--accent);
+    }
+    .nav-card.warn-card .nav-icon {
+      background: rgba(255,107,53,.08);
+      border-color: rgba(255,107,53,.2);
+    }
+    .nav-card.warn-card .nav-icon svg { fill: var(--warn); }
+
+    .nav-label {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .nav-desc {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      color: var(--dim);
+      letter-spacing: .5px;
+    }
+
+    .nav-arrow {
+      position: absolute;
+      right: 16px; bottom: 18px;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--border);
+      transition: color .2s, right .18s;
+    }
+    .nav-card:hover .nav-arrow { color: var(--accent); right: 13px; }
+    .nav-card.warn-card:hover .nav-arrow { color: var(--warn); }
+
+    /* ── Bottom row: 2-col spanning cards ─────── */
+    .nav-grid .wide {
+      grid-column: span 1;
+    }
+
+    /* ── Footer status strip ───────────────────── */
+    footer {
+      padding: 12px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--dim);
+    }
+    footer span b { color: var(--text); }
+
+    /* ── Responsive ────────────────────────────── */
+    @media (max-width: 700px) {
+      .nav-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 480px) {
+      .nav-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
 
-  <canvas id="particle-canvas"></canvas>
+<header>
+  <span class="logo">SENTINEL<span>VIEW</span></span>
+  <div class="header-right">
+    <span><span class="dot"></span>&nbsp;LIVE</span>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
 
-  <div class="dashboard-container">
-    <div class="header">
-      <h1>Command Center</h1>
-      <p class="subtitle">System Status: <span style="color:cyan;">Online</span></p>
-    </div>
-    <div class="links">
-      <a href="/camera">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 10.5V7c0-1.65-1.35-3-3-3H3C1.35 4 0 5.35 0 7v10c0 1.65 1.35 3 3 3h11c1.65 0 3-1.35 3-3v-3.5l4 4v-11l-4 4zM15 17H3V7h11v10z"/></svg>
-        Live Camera Feeds
-      </a>
-      <a href="/enrollment">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 8h-2v3h-3v2h3v3h2v-3h3v-2h-3V8zM4 6c0-1.11.89-2 2-2h8v2H6v12h12v-3h2v3c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V6z"/></svg>
-        Enroll New Person
-      </a>
-      <a href="/people">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-        Manage Registered People
-      </a>
-      <a href="{{ url_for('access_control') }}" class="btn btn-outline-primary w-100 mb-2">
-  🎯 Zone Access Control
-      </a>
-      <a href="/history" class="">
-  Track History
-      </a>
-      <a href="/alerts" class="">
-  Alerts Log
-      </a>
-    </div>
+<main>
+  <div class="hero">
+    <div class="hero-title">Command Center</div>
+    <div class="hero-sub">System Status: <span class="online">Online</span></div>
   </div>
 
+  <nav class="nav-grid">
+
+    <!-- Live Feed -->
+    <a href="/camera" class="nav-card">
+      <div class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M17 10.5V7c0-1.65-1.35-3-3-3H3C1.35 4 0 5.35 0 7v10c0 1.65 1.35 3 3 3h11c1.65 0 3-1.35 3-3v-3.5l4 4v-11l-4 4z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="nav-label">Live Camera Feeds</div>
+        <div class="nav-desc">Real-time MJPEG streams</div>
+      </div>
+      <span class="nav-arrow">→</span>
+    </a>
+
+    <!-- Enroll -->
+    <a href="/enrollment" class="nav-card">
+      <div class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M19 8h-2v3h-3v2h3v3h2v-3h3v-2h-3V8zM4 6c0-1.11.89-2 2-2h8v2H6v12h12v-3h2v3c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V6z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="nav-label">Enroll New Person</div>
+        <div class="nav-desc">Add re-ID features</div>
+      </div>
+      <span class="nav-arrow">→</span>
+    </a>
+
+    <!-- People -->
+    <a href="/people" class="nav-card">
+      <div class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="nav-label">Registered People</div>
+        <div class="nav-desc">View &amp; manage profiles</div>
+      </div>
+      <span class="nav-arrow">→</span>
+    </a>
+
+    <!-- Access Control -->
+    <a href="{{ url_for('access_control') }}" class="nav-card warn-card">
+      <div class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93C9.33 17.79 7 14.5 7 11V7.18L12 5z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="nav-label">Zone Access Control</div>
+        <div class="nav-desc">Camera permissions</div>
+      </div>
+      <span class="nav-arrow">→</span>
+    </a>
+
+    <!-- History -->
+    <a href="/history" class="nav-card">
+      <div class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="nav-label">Track History</div>
+        <div class="nav-desc">Detection logs &amp; export</div>
+      </div>
+      <span class="nav-arrow">→</span>
+    </a>
+
+    <!-- Alerts -->
+    <a href="/alerts" class="nav-card warn-card">
+      <div class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="nav-label">Alerts Log</div>
+        <div class="nav-desc">Unknown &amp; zone alerts</div>
+      </div>
+      <span class="nav-arrow">→</span>
+    </a>
+
+  </nav>
+</main>
+
+<footer>
+  <span>CAMERAS <b>{{ cameras_online | default('—') }}</b></span>
+  <span>ENROLLED <b>{{ enrolled_count | default('—') }}</b></span>
+  <span>BUILD <b>v2.0</b></span>
+</footer>
+
 <script>
-    const canvas = document.getElementById('particle-canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    let particlesArray;
-
-    const mouse = {
-        x: null,
-        y: null,
-        radius: (canvas.height/120) * (canvas.width/120)
-    };
-
-    window.addEventListener('mousemove', function(event) {
-        mouse.x = event.x;
-        mouse.y = event.y;
-    });
-
-    class Particle {
-        constructor(x, y, directionX, directionY, size, color) {
-            this.x = x;
-            this.y = y;
-            this.directionX = directionX;
-            this.directionY = directionY;
-            this.size = size;
-            this.color = color;
-        }
-        draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-            ctx.fillStyle = '#00c8c8';
-            ctx.fill();
-        }
-        update() {
-            if (this.x > canvas.width || this.x < 0) {
-                this.directionX = -this.directionX;
-            }
-            if (this.y > canvas.height || this.y < 0) {
-                this.directionY = -this.directionY;
-            }
-
-            let dx = mouse.x - this.x;
-            let dy = mouse.y - this.y;
-            let distance = Math.sqrt(dx*dx + dy*dy);
-            if (distance < mouse.radius + this.size){
-                if (mouse.x < this.x && this.x < canvas.width - this.size * 10) {
-                    this.x += 5;
-                }
-                if (mouse.x > this.x && this.x > this.size * 10) {
-                    this.x -= 5;
-                }
-                if (mouse.y < this.y && this.y < canvas.height - this.size * 10) {
-                    this.y += 5;
-                }
-                if (mouse.y > this.y && this.y > this.size * 10) {
-                    this.y -= 5;
-                }
-            }
-            this.x += this.directionX;
-            this.y += this.directionY;
-            this.draw();
-        }
-    }
-
-    function init() {
-        particlesArray = [];
-        let numberOfParticles = (canvas.height * canvas.width) / 9000;
-        for (let i = 0; i < numberOfParticles; i++) {
-            let size = (Math.random() * 2) + 1;
-            let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
-            let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
-            let directionX = (Math.random() * 0.4) - 0.2;
-            let directionY = (Math.random() * 0.4) - 0.2;
-            let color = '#00c8c8';
-
-            particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
-        }
-    }
-
-    function connect() {
-        let opacityValue = 1;
-        for (let a = 0; a < particlesArray.length; a++) {
-            for (let b = a; b < particlesArray.length; b++) {
-                let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x))
-                + ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
-                if (distance < (canvas.width/7) * (canvas.height/7)) {
-                    opacityValue = 1 - (distance/20000);
-                    ctx.strokeStyle = 'rgba(0, 200, 200,' + opacityValue + ')';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
-                    ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
-                    ctx.stroke();
-                }
-            }
-        }
-    }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        ctx.clearRect(0,0,innerWidth, innerHeight);
-
-        for (let i = 0; i < particlesArray.length; i++) {
-            particlesArray[i].update();
-        }
-        connect();
-    }
-    
-    window.addEventListener('resize', function(){
-        canvas.width = innerWidth;
-        canvas.height = innerHeight;
-        mouse.radius = ((canvas.height/120) * (canvas.height/120));
-        init();
-    });
-
-    window.addEventListener('mouseout', function(){
-        mouse.x = undefined;
-        mouse.y = undefined;
-    });
-
-    init();
-    animate();
+  (function tickClock() {
+    document.getElementById("clock").textContent =
+      new Date().toTimeString().slice(0, 8);
+    setTimeout(tickClock, 1000);
+  })();
 </script>
 
 </body>

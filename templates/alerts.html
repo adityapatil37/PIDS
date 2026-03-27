@@ -1,61 +1,345 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Alerts Log</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
-        .container { width: 90%; margin: 40px auto; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px; }
-        h2 { text-align: center; color: #333; margin-bottom: 30px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: left; }
-        th { background: #007BFF; color: white; }
-        tr:hover { background: #f1f1f1; }
-        .alert-image { width: 120px; border-radius: 6px; }
-        .export-buttons { text-align: right; margin-bottom: 15px; }
-        .export-buttons a { background: #007BFF; color: white; padding: 8px 15px; border-radius: 6px; text-decoration: none; margin-left: 5px; }
-        .export-buttons a:hover { background: #0056b3; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SentinelView — Alerts Log</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #080c10;
+      --surface: #0d1117;
+      --border:  #1e2d3d;
+      --accent:  #00e5ff;
+      --warn:    #ff6b35;
+      --safe:    #39d353;
+      --text:    #c9d1d9;
+      --dim:     #58687a;
+      --mono:    'Share Tech Mono', monospace;
+      --sans:    'Barlow', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ───────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+    .logo span { color: var(--dim); }
+    .header-right {
+      display: flex; gap: 16px; align-items: center;
+      font-family: var(--mono); font-size: 0.7rem; color: var(--dim);
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--safe); display: inline-block;
+      box-shadow: 0 0 6px var(--safe);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    #clock { color: var(--accent); }
+
+    /* ── Main ─────────────────────────────────── */
+    main {
+      flex: 1;
+      padding: 48px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    /* ── Page header ──────────────────────────── */
+    .page-header {
+      width: 100%; max-width: 1100px;
+      display: flex; align-items: flex-end;
+      justify-content: space-between; gap: 16px;
+      flex-wrap: wrap;
+    }
+    .page-title {
+      font-family: var(--mono);
+      font-size: clamp(1rem, 3vw, 1.4rem);
+      color: var(--warn);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+    .page-sub {
+      font-family: var(--mono);
+      font-size: 0.65rem; color: var(--dim);
+      letter-spacing: 2px; margin-top: 4px;
+    }
+
+    /* ── Button group ─────────────────────────── */
+    .btn-group {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    }
+    .btn {
+      font-family: var(--mono);
+      font-size: 0.68rem; letter-spacing: 1.5px;
+      text-transform: uppercase; padding: 8px 16px;
+      border-radius: 4px; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 7px;
+      border: 1px solid transparent;
+      transition: background .2s, border-color .2s, color .2s, box-shadow .2s;
+      white-space: nowrap;
+    }
+    .btn-ghost {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--dim);
+    }
+    .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+
+    .btn-export {
+      background: rgba(0,229,255,.08);
+      border-color: rgba(0,229,255,.25);
+      color: var(--accent);
+    }
+    .btn-export:hover {
+      background: rgba(0,229,255,.15);
+      border-color: rgba(0,229,255,.5);
+      box-shadow: 0 0 10px rgba(0,229,255,.1);
+    }
+
+    /* ── Table panel ──────────────────────────── */
+    .table-panel {
+      width: 100%; max-width: 1100px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+    .table-panel::before {
+      content: "";
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--warn);
+    }
+
+    /* ── Table ────────────────────────────────── */
+    .alerts-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .alerts-table thead tr {
+      border-bottom: 1px solid var(--border);
+    }
+    .alerts-table th {
+      font-family: var(--mono);
+      font-size: 0.6rem; color: var(--dim);
+      letter-spacing: 2px; text-transform: uppercase;
+      padding: 14px 18px; text-align: left; font-weight: 400;
+      white-space: nowrap;
+    }
+    .alerts-table tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+    .alerts-table tbody tr:last-child { border-bottom: none; }
+    .alerts-table tbody tr:hover { background: rgba(255,107,53,.04); }
+
+    .alerts-table td {
+      padding: 14px 18px;
+      font-size: 0.85rem;
+      vertical-align: middle;
+    }
+
+    .alerts-table td.col-name {
+      font-weight: 600; color: var(--text);
+      font-size: 0.88rem;
+    }
+    .alerts-table td.col-camera {
+      font-family: var(--mono);
+      font-size: 0.7rem; color: var(--accent);
+      letter-spacing: 1px;
+    }
+
+    /* alert type badge */
+    .alert-badge {
+      font-family: var(--mono);
+      font-size: 0.58rem; letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 9px; border-radius: 3px;
+      border: 1px solid;
+      display: inline-block;
+    }
+    .badge-unknown {
+      color: var(--warn);
+      background: rgba(255,107,53,.08);
+      border-color: rgba(255,107,53,.3);
+    }
+    .badge-zone {
+      color: #f0c040;
+      background: rgba(240,192,64,.08);
+      border-color: rgba(240,192,64,.3);
+    }
+    .badge-default {
+      color: var(--dim);
+      background: rgba(88,104,122,.08);
+      border-color: rgba(88,104,122,.3);
+    }
+
+    .alerts-table td.col-time {
+      font-family: var(--mono);
+      font-size: 0.65rem; color: var(--dim);
+      letter-spacing: 1px; white-space: nowrap;
+    }
+
+    .alert-thumb {
+      width: 80px; height: 60px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      object-fit: cover; display: block;
+      transition: border-color .2s, transform .18s;
+    }
+    .alert-thumb:hover {
+      border-color: rgba(0,229,255,.4);
+      transform: scale(1.06);
+    }
+    .no-thumb {
+      font-family: var(--mono);
+      font-size: 0.6rem; color: var(--dim);
+      letter-spacing: 1px;
+    }
+
+    .empty-row td {
+      text-align: center;
+      padding: 60px 24px;
+      font-family: var(--mono);
+      font-size: 0.7rem; color: var(--dim);
+      letter-spacing: 2px;
+    }
+
+    /* ── Footer ───────────────────────────────── */
+    footer {
+      padding: 12px 24px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: center; gap: 32px;
+      font-family: var(--mono); font-size: 0.65rem; color: var(--dim);
+    }
+    footer span b { color: var(--text); }
+
+    @media (max-width: 700px) {
+      .page-header { flex-direction: column; align-items: flex-start; }
+      .alerts-table th:nth-child(4),
+      .alerts-table td:nth-child(4) { display: none; }
+    }
+    @media (max-width: 500px) {
+      .alerts-table th:nth-child(2),
+      .alerts-table td:nth-child(2) { display: none; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h2>All Alerts Log</h2>
 
-        <div class="export-buttons">
-            <a href="{{ url_for('export_alerts_excel') }}">Export as Excel</a>
-            <a href="{{ url_for('export_alerts_pdf') }}">Export as PDF</a>
-            <a href="/">Home</a>
-        </div>
+<header>
+  <a href="/" class="logo">SENTINEL<span>VIEW</span></a>
+  <div class="header-right">
+    <span><span class="dot"></span>&nbsp;LIVE</span>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Person Name</th>
-                    <th>Camera</th>
-                    <th>Alert Type</th>
-                    <th>Timestamp</th>
-                    <th>Frame</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for alert in alerts %}
-                <tr>
-                    <td>{{ alert.person_name }}</td>
-                    <td>{{ alert.camera_name }}</td>
-                    <td>{{ alert.alert_type }}</td>
-                    <td>{{ alert.timestamp }}</td>
-                    <td>
-                        {% if alert.frame_path %}
-                        <img src="{{ url_for('static', filename=alert.frame_path) }}" class="alert-image">
-                        {% else %}
-                        N/A
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<main>
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Alerts Log</div>
+      <div class="page-sub">Unknown &amp; zone violation events</div>
     </div>
+    <div class="btn-group">
+      <a href="{{ url_for('export_alerts_excel') }}" class="btn btn-export">↓ Export Excel</a>
+      <a href="{{ url_for('export_alerts_pdf') }}" class="btn btn-export">↓ Export PDF</a>
+      <a href="/" class="btn btn-ghost">← Home</a>
+    </div>
+  </div>
+
+  <div class="table-panel">
+    <table class="alerts-table">
+      <thead>
+        <tr>
+          <th>Person</th>
+          <th>Camera</th>
+          <th>Alert Type</th>
+          <th>Timestamp</th>
+          <th>Frame</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if alerts %}
+          {% for alert in alerts %}
+          <tr>
+            <td class="col-name">{{ alert.person_name or 'UNKNOWN' }}</td>
+            <td class="col-camera">{{ alert.camera_name or 'N/A' }}</td>
+            <td>
+              {% set status = (alert.status or 'N/A') | upper %}
+              {% if 'UNKNOWN' in status %}
+                <span class="alert-badge badge-unknown">{{ status }}</span>
+              {% elif 'ZONE' in status %}
+                <span class="alert-badge badge-zone">{{ status }}</span>
+              {% else %}
+                <span class="alert-badge badge-default">{{ status }}</span>
+              {% endif %}
+            </td>
+            <td class="col-time">{{ alert.timestamp or 'N/A' }}</td>
+            <td>
+              {% if alert.thumbnail %}
+                <img src="{{ alert.thumbnail }}" class="alert-thumb" alt="Alert frame">
+              {% else %}
+                <span class="no-thumb">N/A</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="empty-row">
+            <td colspan="5">No alerts on record.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  <span>CAMERAS <b>{{ cameras_online | default('—') }}</b></span>
+  <span>ENROLLED <b>{{ enrolled_count | default('—') }}</b></span>
+  <span>BUILD <b>v2.0</b></span>
+</footer>
+
+<script>
+  (function tickClock() {
+    document.getElementById("clock").textContent =
+      new Date().toTimeString().slice(0, 8);
+    setTimeout(tickClock, 1000);
+  })();
+</script>
+
 </body>
 </html>

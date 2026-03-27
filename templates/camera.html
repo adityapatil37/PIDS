@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Feed — CamView</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #080c10;
+    --surface: #0d1117;
+    --border:  #1e2d3d;
+    --accent:  #00e5ff;
+    --warn:    #ff6b35;
+    --safe:    #39d353;
+    --text:    #c9d1d9;
+    --dim:     #58687a;
+    --mono:    'Share Tech Mono', monospace;
+    --sans:    'Barlow', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-weight: 300;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ──────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 22px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+    flex-shrink: 0;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 1rem;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-decoration: none;
+  }
+  .logo span { color: var(--dim); }
+  .nav-back {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--dim);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 3px;
+    transition: color .2s, border-color .2s;
+  }
+  .nav-back:hover { color: var(--accent); border-color: var(--accent); }
+  .status-bar {
+    display: flex; gap: 18px; align-items: center;
+    font-family: var(--mono); font-size: 0.7rem; color: var(--dim);
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--safe);
+    display: inline-block;
+    box-shadow: 0 0 6px var(--safe);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  #clock { color: var(--accent); }
+
+  /* ── Layout ──────────────────────────────────────── */
+  main {
+    display: grid;
+    grid-template-columns: 1fr 290px;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - 47px);
+  }
+
+  /* ── Camera area ─────────────────────────────────── */
+  #camera-area {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  #camera-grid {
+    flex: 1;
+    display: grid;
+    gap: 3px;
+    padding: 10px;
+    overflow-y: auto;
+    align-content: start;
+  }
+
+  .cam-tile {
+    position: relative;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    aspect-ratio: 4/3;
+    transition: border-color .3s;
+  }
+  .cam-tile.alerting { border-color: var(--warn); }
+
+  .cam-tile img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Scanline overlay for atmosphere */
+  .cam-tile::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,.06) 3px,
+      rgba(0,0,0,.06) 4px
+    );
+    pointer-events: none;
+  }
+
+  .cam-label {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 6px 10px;
+    background: linear-gradient(to bottom, rgba(0,0,0,.75) 0%, transparent 100%);
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 1px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .rec-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #ff3333;
+    box-shadow: 0 0 5px #ff3333;
+    animation: pulse 1.2s infinite;
+  }
+
+  .cam-footer {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 5px 10px;
+    background: linear-gradient(to top, rgba(0,0,0,.8) 0%, transparent 100%);
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  .cam-count {
+    font-family: var(--mono); font-size: 0.68rem; color: var(--dim);
+    line-height: 1;
+  }
+  .cam-count b { color: var(--accent); font-size: 0.9rem; }
+  .cam-alert-badge {
+    font-family: var(--mono); font-size: 0.6rem;
+    background: var(--warn); color: #000;
+    padding: 2px 7px; border-radius: 2px;
+    display: none; font-weight: 600;
+  }
+  .cam-alert-badge.active {
+    display: block;
+    animation: blink 1s step-start infinite;
+  }
+  @keyframes blink { 50%{opacity:0} }
+
+  /* ── Sidebar ─────────────────────────────────────── */
+  #sidebar {
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel {
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel:last-child { border-bottom: none; }
+
+  .panel-header {
+    padding: 9px 13px;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--dim);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-badge {
+    background: var(--accent); color: #000;
+    padding: 1px 6px; border-radius: 2px;
+    font-size: 0.6rem; font-weight: 700;
+  }
+
+  .panel-body {
+    flex: 1; overflow-y: auto; padding: 4px 0;
+    min-height: 0;
+  }
+  .panel-body::-webkit-scrollbar { width: 3px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── Person rows ─────────────────────────────────── */
+  .person-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 6px 13px;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+    animation: slideIn .25s ease;
+  }
+  @keyframes slideIn { from { opacity:0; transform:translateX(8px); } }
+
+  .person-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 0.68rem;
+    color: var(--accent); flex-shrink: 0;
+    border: 1px solid rgba(0,229,255,.2);
+  }
+  .person-avatar.unknown { color: #ff4444; border-color: rgba(255,68,68,.3); }
+  .person-avatar.uncertain { color: var(--warn); border-color: rgba(255,107,53,.3); }
+
+  .person-info { flex: 1; min-width: 0; }
+  .person-name {
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .person-name.unknown   { color: #ff4444; }
+  .person-name.uncertain { color: var(--warn); }
+  .person-sub {
+    font-family: var(--mono); font-size: 0.58rem; color: var(--dim);
+    margin-top: 1px;
+  }
+
+  .conf-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .conf-pct { font-family: var(--mono); font-size: 0.58rem; color: var(--dim); }
+  .conf-bar {
+    width: 34px; height: 3px; background: var(--border); border-radius: 2px;
+  }
+  .conf-fill {
+    height: 100%; border-radius: 2px;
+    transition: width .5s ease;
+  }
+
+  /* ── Log rows ────────────────────────────────────── */
+  .log-row {
+    display: flex; gap: 7px;
+    padding: 5px 13px;
+    font-family: var(--mono); font-size: 0.62rem;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+    animation: slideIn .25s ease;
+  }
+  .log-time { color: var(--dim); flex-shrink: 0; width: 52px; }
+  .log-name { color: var(--accent); flex-shrink: 0; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .log-cam  { color: var(--dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── Alert rows ──────────────────────────────────── */
+  .alert-row {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 6px 13px;
+    border-left: 2px solid var(--warn);
+    margin: 3px 8px;
+    background: rgba(255,107,53,.06);
+    border-radius: 0 3px 3px 0;
+    animation: slideIn .25s ease;
+  }
+  .alert-row .al-top {
+    display: flex; gap: 7px;
+    font-family: var(--mono); font-size: 0.62rem;
+  }
+  .alert-row .al-time { color: var(--dim); flex-shrink: 0; }
+  .alert-row .al-msg  { color: var(--warn); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .alert-row .al-cam  { font-family: var(--mono); font-size: 0.58rem; color: var(--dim); }
+
+  /* ── Empty state ─────────────────────────────────── */
+  .empty {
+    text-align: center; padding: 18px;
+    font-family: var(--mono); font-size: 0.62rem; color: var(--border);
+  }
+
+  /* ── Responsive ──────────────────────────────────── */
+  @media (max-width: 860px) {
+    main {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr auto;
+      height: auto;
+    }
+    #camera-area { height: 60vh; }
+    #sidebar { max-height: 45vh; border-left: none; border-top: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="/">CAM<span>VIEW</span></a>
+  <div class="status-bar">
+    <span><span class="dot"></span>&nbsp;LIVE</span>
+    <span>PERSONS:&nbsp;<b id="total-count" style="color:var(--accent)">0</b></span>
+    <span id="clock">--:--:--</span>
+  </div>
+  <a class="nav-back" href="/">← Dashboard</a>
+</header>
+
+<main>
+  <!-- Camera grid -->
+  <div id="camera-area">
+    <div id="camera-grid">
+      {% for cam in cameras %}
+      <div class="cam-tile" id="tile-{{ cam }}">
+        <img src="/camera/stream/{{ cam }}"
+             alt="{{ cam }}"
+             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22640%22 height=%22480%22><rect fill=%22%23080c10%22 width=%22640%22 height=%22480%22/><text fill=%22%2358687a%22 font-family=%22monospace%22 font-size=%2216%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22>No Signal</text></svg>'">
+        <div class="cam-label">
+          <span>{{ cam }}</span>
+          <span class="rec-dot"></span>
+        </div>
+        <div class="cam-footer">
+          <div class="cam-count">PERSONS&nbsp;<b id="count-{{ cam }}">0</b></div>
+          <div class="cam-alert-badge" id="alert-badge-{{ cam }}">⚠ UNKNOWN</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+
+    <!-- Live persons -->
+    <div class="panel" style="flex:1.5; min-height:0;">
+      <div class="panel-header">
+        Live Persons
+        <span class="panel-badge" id="live-badge">0</span>
+      </div>
+      <div class="panel-body" id="live-persons">
+        <div class="empty">Waiting for detections…</div>
+      </div>
+    </div>
+
+    <!-- Detection log -->
+    <div class="panel" style="flex:1; min-height:0;">
+      <div class="panel-header">Detection Log</div>
+      <div class="panel-body" id="log-list">
+        <div class="empty">No logs yet</div>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="panel" style="flex:0.9; min-height:0;">
+      <div class="panel-header">Alerts</div>
+      <div class="panel-body" id="alert-list">
+        <div class="empty">No alerts</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  // ── Grid columns based on camera count ───────────
+  const camCount = {{ cameras | length }};
+  const cols = camCount <= 1 ? 1 : camCount <= 4 ? 2 : 3;
+  document.getElementById("camera-grid").style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+  // ── Clock ─────────────────────────────────────────
+  (function tickClock() {
+    document.getElementById("clock").textContent =
+      new Date().toTimeString().slice(0, 8);
+    setTimeout(tickClock, 1000);
+  })();
+
+  // ── Helpers ───────────────────────────────────────
+  function initials(name) {
+    if (!name || name === "UNKNOWN") return "?";
+    return name.replace(" (?)", "")
+               .split(/\s+/)
+               .map(w => w[0] || "")
+               .join("")
+               .slice(0, 2)
+               .toUpperCase();
+  }
+
+  // ── Status poll (1 s) ─────────────────────────────
+  async function pollStatus() {
+    try {
+      const data = await fetch("/camera/status").then(r => r.json());
+      let total = 0;
+      const allPeople = [];
+
+      for (const [cam, info] of Object.entries(data)) {
+        const cnt = info.count || 0;
+        total += cnt;
+
+        const el = document.getElementById(`count-${cam}`);
+        if (el) el.textContent = cnt;
+
+        const badge = document.getElementById(`alert-badge-${cam}`);
+        const tile  = document.getElementById(`tile-${cam}`);
+        const hasUnknown = (info.people || []).some(p => p.name === "UNKNOWN");
+        if (badge) badge.classList.toggle("active", hasUnknown);
+        if (tile)  tile.classList.toggle("alerting", hasUnknown);
+
+        for (const p of (info.people || [])) allPeople.push({...p, camera: cam});
+      }
+
+      document.getElementById("total-count").textContent = total;
+      document.getElementById("live-badge").textContent  = total;
+      renderPersons(allPeople);
+    } catch {}
+  }
+
+  function renderPersons(people) {
+    const el = document.getElementById("live-persons");
+    if (!people.length) {
+      el.innerHTML = '<div class="empty">No persons detected</div>';
+      return;
+    }
+    el.innerHTML = people.map(p => {
+      const isUnk  = p.name === "UNKNOWN";
+      const isUns  = p.name && p.name.includes("(?)");
+      const cls    = isUnk ? "unknown" : isUns ? "uncertain" : "";
+      const pct    = Math.round((p.conf || 0) * 100);
+      const barClr = isUnk ? "#ff4444" : isUns ? "#ff6b35" : "#39d353";
+      return `
+        <div class="person-row">
+          <div class="person-avatar ${cls}">${initials(p.name)}</div>
+          <div class="person-info">
+            <div class="person-name ${cls}">${p.name}</div>
+            <div class="person-sub">${p.camera}&nbsp;·&nbsp;TRK&nbsp;${p.track_id}</div>
+          </div>
+          <div class="conf-wrap">
+            <span class="conf-pct">${pct}%</span>
+            <div class="conf-bar">
+              <div class="conf-fill" style="width:${pct}%;background:${barClr}"></div>
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  // ── Log poll (5 s) ────────────────────────────────
+  async function pollLogs() {
+    try {
+      const logs = await fetch("/camera/recent_logs").then(r => r.json());
+      const el   = document.getElementById("log-list");
+      if (!logs.length) { el.innerHTML = '<div class="empty">No logs yet</div>'; return; }
+      el.innerHTML = logs.map(l => `
+        <div class="log-row">
+          <span class="log-time">${l.timestamp || ""}</span>
+          <span class="log-name">${l.person_name || ""}</span>
+          <span class="log-cam">${l.camera_name || ""}</span>
+        </div>`).join("");
+    } catch {}
+  }
+
+  // ── Alert poll (3 s) ──────────────────────────────
+  async function pollAlerts() {
+    try {
+      const alerts = await fetch("/camera/recent_alerts").then(r => r.json());
+      const el     = document.getElementById("alert-list");
+      if (!alerts.length) { el.innerHTML = '<div class="empty">No alerts</div>'; return; }
+      el.innerHTML = alerts.map(a => `
+        <div class="alert-row">
+          <div class="al-top">
+            <span class="al-time">${a.timestamp || ""}</span>
+            <span class="al-msg">${a.person_name || "UNKNOWN"} — ${a.status || "Alert"}</span>
+          </div>
+          <span class="al-cam">${a.camera_name || ""}</span>
+        </div>`).join("");
+    } catch {}
+  }
+
+  // ── Kick off ──────────────────────────────────────
+  pollStatus();  pollLogs();  pollAlerts();
+  setInterval(pollStatus,  1000);
+  setInterval(pollLogs,    5000);
+  setInterval(pollAlerts,  3000);
+</script>
+</body>
+</html>

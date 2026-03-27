@@ -1,162 +1,376 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Registered People</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SentinelView — Registered People</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
-    /* --- General Body & Font Styles --- */
+    :root {
+      --bg:      #080c10;
+      --surface: #0d1117;
+      --border:  #1e2d3d;
+      --accent:  #00e5ff;
+      --warn:    #ff6b35;
+      --safe:    #39d353;
+      --text:    #c9d1d9;
+      --dim:     #58687a;
+      --mono:    'Share Tech Mono', monospace;
+      --sans:    'Barlow', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f8f9fa; /* Light grey background */
-      color: #343a40;
-      margin: 0;
-      padding: 30px;
-    }
-    
-    /* --- Main Container & Header --- */
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
-    .header {
+    /* ── Header ───────────────────────────────── */
+    header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #dee2e6;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky; top: 0; z-index: 100;
     }
-
-    h1 {
-      color: #212529;
-      margin: 0;
-    }
-
-    .home-btn {
-      background-color: #007bff;
-      color: white;
-      padding: 10px 20px;
+    .logo {
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-transform: uppercase;
       text-decoration: none;
-      border-radius: 6px;
-      font-weight: 500;
-      transition: background-color 0.3s ease;
     }
+    .logo span { color: var(--dim); }
+    .header-right {
+      display: flex; gap: 16px; align-items: center;
+      font-family: var(--mono); font-size: 0.7rem; color: var(--dim);
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--safe);
+      display: inline-block;
+      box-shadow: 0 0 6px var(--safe);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    #clock { color: var(--accent); }
 
-    .home-btn:hover {
-      background-color: #0056b3;
-    }
-    
-    /* --- People Grid Layout --- */
-    .people-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        gap: 30px;
-    }
-
-    /* --- Person Card Styling --- */
-    .person {
-      background: #ffffff;
-      border: 1px solid #e9ecef;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    
-    .person:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-    }
-    
-    .person h2 {
-        font-size: 1.5rem;
-        margin-top: 0;
-        margin-bottom: 5px;
-        color: #343a40;
-    }
-    
-    .person p {
-        font-size: 0.9rem;
-        color: #6c757d;
-        margin-top: 0;
-        margin-bottom: 20px;
-    }
-
-    /* --- Image Gallery in Card --- */
-    .images {
+    /* ── Main ─────────────────────────────────── */
+    main {
+      flex: 1;
+      padding: 48px 24px;
       display: flex;
-      gap: 10px;
-      margin-top: 10px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
     }
 
-    .images img {
-      width: 100px;
-      height: 100px;
-      border-radius: 8px;
-      object-fit: cover; /* Prevents image distortion */
-      border: 2px solid #f1f1f1;
-      transition: transform 0.2s ease;
+    /* ── Page header ──────────────────────────── */
+    .page-header {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
     }
-    
-    .images img:hover {
-        transform: scale(1.1);
+    .page-title {
+      font-family: var(--mono);
+      font-size: clamp(1rem, 3vw, 1.4rem);
+      color: var(--accent);
+      letter-spacing: 4px;
+      text-transform: uppercase;
     }
-    
-    /* --- Action Buttons in Card --- */
-    .actions {
-      margin-top: 20px;
+    .page-sub {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--dim);
+      letter-spacing: 2px;
+      margin-top: 4px;
     }
 
-    .actions a {
-      padding: 8px 15px;
-      margin-right: 10px;
+    .btn {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 9px 20px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
       text-decoration: none;
-      border-radius: 6px;
-      color: white;
-      font-weight: 500;
-      transition: opacity 0.3s ease, transform 0.2s ease;
       display: inline-flex;
       align-items: center;
-      gap: 6px; /* Space between emoji and text */
+      gap: 8px;
+      transition: background .2s, color .2s, box-shadow .2s;
+      white-space: nowrap;
     }
-    
-    .actions a:hover {
-        opacity: 0.85;
-        transform: translateY(-2px);
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+    }
+    .btn-ghost:hover {
+      border-color: var(--text);
+      color: var(--text);
     }
 
-    .edit-btn { background-color: #20c997; }
-    .delete-btn { background-color: #e74c3c; }
-    
+    /* ── People grid ──────────────────────────── */
+    .people-grid {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── Person card ──────────────────────────── */
+    .person-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 22px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s, background .2s, transform .18s;
+    }
+    .person-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .25s ease;
+    }
+    .person-card:hover {
+      border-color: rgba(0,229,255,.35);
+      background: #0e1620;
+      transform: translateY(-3px);
+    }
+    .person-card:hover::before { transform: scaleX(1); }
+
+    /* card top row */
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .person-name {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .person-role {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      color: var(--accent);
+      background: rgba(0,229,255,.08);
+      border: 1px solid rgba(0,229,255,.2);
+      border-radius: 3px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .person-enrolled {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      color: var(--dim);
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+
+    /* image strip */
+    .image-strip {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .image-thumb {
+      width: 80px;
+      height: 80px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: var(--bg);
+      transition: border-color .2s, transform .18s;
+    }
+    .image-thumb:hover {
+      border-color: rgba(0,229,255,.4);
+      transform: scale(1.05);
+    }
+    .image-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* card actions */
+    .card-actions {
+      display: flex;
+      gap: 10px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+    .action-btn {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 7px 14px;
+      border-radius: 4px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background .2s, color .2s, border-color .2s;
+      border: 1px solid transparent;
+    }
+    .action-edit {
+      background: rgba(57,211,83,.08);
+      border-color: rgba(57,211,83,.25);
+      color: var(--safe);
+    }
+    .action-edit:hover {
+      background: rgba(57,211,83,.15);
+      border-color: rgba(57,211,83,.5);
+    }
+    .action-delete {
+      background: rgba(255,107,53,.08);
+      border-color: rgba(255,107,53,.25);
+      color: var(--warn);
+    }
+    .action-delete:hover {
+      background: rgba(255,107,53,.15);
+      border-color: rgba(255,107,53,.5);
+    }
+
+    /* ── Empty state ──────────────────────────── */
+    .empty-state {
+      width: 100%;
+      max-width: 1100px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      padding: 60px 24px;
+      text-align: center;
+    }
+    .empty-state p {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--dim);
+      letter-spacing: 2px;
+    }
+
+    /* ── Footer ───────────────────────────────── */
+    footer {
+      padding: 12px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--dim);
+    }
+    footer span b { color: var(--text); }
+
+    @media (max-width: 600px) {
+      .people-grid { grid-template-columns: 1fr; }
+      .page-header { flex-direction: column; align-items: flex-start; }
+    }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <div class="header">
-      <h1>Registered People</h1>
-      <a href="/" class="home-btn">Home</a>
-    </div>
+<header>
+  <a href="/" class="logo">SENTINEL<span>VIEW</span></a>
+  <div class="header-right">
+    <span><span class="dot"></span>&nbsp;LIVE</span>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
 
+<main>
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Registered People</div>
+      <div class="page-sub">View &amp; manage enrolled profiles</div>
+    </div>
+    <a href="/" class="btn btn-ghost">← Home</a>
+  </div>
+
+  {% if people %}
     <div class="people-grid">
       {% for person in people %}
-        <div class="person">
-          <h2>{{ person['name'] }} ({{ person['role'] }})</h2>
-          <p>Enrolled: {{ person['registered_at'] }}</p>
-          <div class="images">
+        <div class="person-card">
+
+          <div class="card-top">
+            <div class="person-name">{{ person['name'] }}</div>
+            <span class="person-role">{{ person['role'] }}</span>
+          </div>
+
+          <div class="person-enrolled">Enrolled: {{ person['registered_at'] }}</div>
+
+          <div class="image-strip">
             {% for img in person['images'] %}
-              <img src="{{ '/' + img }}" alt="Photo of {{ person['name'] }}">
+              <div class="image-thumb">
+                <img src="{{ '/' + img }}" alt="Photo of {{ person['name'] }}">
+              </div>
             {% endfor %}
           </div>
-          <div class="actions">
-            <a href="/edit/{{ person['_id'] }}" class="edit-btn">✏️ Edit</a>
-            <a href="/delete/{{ person['_id'] }}" class="delete-btn" onclick="return confirm('Are you sure you want to delete this person?')">🗑️ Delete</a>
+
+          <div class="card-actions">
+            <a href="/edit/{{ person['_id'] }}" class="action-btn action-edit">✏ Edit</a>
+            <a href="/delete/{{ person['_id'] }}" class="action-btn action-delete"
+               onclick="return confirm('Are you sure you want to delete this person?')">
+              ✕ Delete
+            </a>
           </div>
+
         </div>
       {% endfor %}
     </div>
-  </div>
+  {% else %}
+    <div class="empty-state">
+      <p>No enrolled profiles found — enroll a new person to get started.</p>
+    </div>
+  {% endif %}
+
+</main>
+
+<footer>
+  <span>CAMERAS <b>{{ cameras_online | default('—') }}</b></span>
+  <span>ENROLLED <b>{{ enrolled_count | default('—') }}</b></span>
+  <span>BUILD <b>v2.0</b></span>
+</footer>
+
+<script>
+  (function tickClock() {
+    document.getElementById("clock").textContent =
+      new Date().toTimeString().slice(0, 8);
+    setTimeout(tickClock, 1000);
+  })();
+</script>
 
 </body>
 </html>

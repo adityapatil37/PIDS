@@ -1,193 +1,346 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Person Track History</title>
-    <style>
-        body {
-            font-family: "Segoe UI", sans-serif;
-            background: #0d0d0d;
-            color: #f2f2f2;
-            margin: 0;
-            padding: 40px;
-        }
-        h1 {
-            text-align: center;
-            color: #00bcd4;
-        }
-        form {
-            background: #1a1a1a;
-            padding: 20px;
-            border-radius: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 40px;
-        }
-        input, select {
-            padding: 10px;
-            border-radius: 6px;
-            border: none;
-            outline: none;
-        }
-        button {
-            background-color: #00bcd4;
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover {
-            background-color: #0097a7;
-        }
-        .timeline {
-            max-width: 950px;
-            margin: auto;
-        }
-        .entry {
-            background: #1a1a1a;
-            margin: 15px 0;
-            border-radius: 10px;
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            transition: transform 0.2s, background 0.3s;
-        }
-        .entry:hover {
-            transform: scale(1.02);
-            background: #242424;
-        }
-        .thumb {
-            width: 120px;
-            height: 120px;
-            overflow: hidden;
-            border-radius: 10px;
-            margin-right: 20px;
-            flex-shrink: 0;
-            cursor: pointer;
-            border: 2px solid #333;
-        }
-        .thumb img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s;
-        }
-        .thumb:hover img {
-            transform: scale(1.1);
-        }
-        .info {
-            flex: 1;
-        }
-        .timestamp {
-            color: #999;
-            font-size: 14px;
-        }
-
-        /* Lightbox popup */
-        .lightbox {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            align-items: center;
-            justify-content: center;
-        }
-        .lightbox img {
-            max-width: 90%;
-            max-height: 90%;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.6);
-        }
-        .lightbox:target {
-            display: flex;
-        }
-        .close-btn {
-            position: absolute;
-            top: 30px;
-            right: 40px;
-            color: #fff;
-            font-size: 30px;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .close-btn:hover {
-            color: #00bcd4;
-        }
-
-            .btn {
-        display: inline-block;
-        background: #4CAF50;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 6px;
-        text-decoration: none;
-        margin-right: 8px;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SentinelView — Track History</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #080c10;
+      --surface: #0d1117;
+      --border:  #1e2d3d;
+      --accent:  #00e5ff;
+      --warn:    #ff6b35;
+      --safe:    #39d353;
+      --text:    #c9d1d9;
+      --dim:     #58687a;
+      --mono:    'Share Tech Mono', monospace;
+      --sans:    'Barlow', sans-serif;
     }
-    .btn:hover {
-        background: #45a049;
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
-    </style>
+
+    /* ── Header ───────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+    .logo span { color: var(--dim); }
+    .header-right {
+      display: flex; gap: 16px; align-items: center;
+      font-family: var(--mono); font-size: 0.7rem; color: var(--dim);
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--safe); display: inline-block;
+      box-shadow: 0 0 6px var(--safe);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    #clock { color: var(--accent); }
+
+    /* ── Main ─────────────────────────────────── */
+    main {
+      flex: 1;
+      padding: 48px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+
+    /* ── Page header ──────────────────────────── */
+    .page-header {
+      width: 100%; max-width: 860px;
+      display: flex; align-items: flex-end;
+      justify-content: space-between; gap: 16px;
+    }
+    .page-title {
+      font-family: var(--mono);
+      font-size: clamp(1rem, 3vw, 1.4rem);
+      color: var(--accent);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+    .page-sub {
+      font-family: var(--mono);
+      font-size: 0.65rem; color: var(--dim);
+      letter-spacing: 2px; margin-top: 4px;
+    }
+    .btn-ghost {
+      font-family: var(--mono);
+      font-size: 0.7rem; letter-spacing: 2px;
+      text-transform: uppercase; padding: 9px 20px;
+      border-radius: 4px; border: 1px solid var(--border);
+      background: transparent; color: var(--dim);
+      text-decoration: none; white-space: nowrap;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+
+    /* ── Search card ──────────────────────────── */
+    .search-card {
+      width: 100%; max-width: 860px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 24px 28px;
+      position: relative; overflow: hidden;
+    }
+    .search-card::before {
+      content: "";
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--accent);
+    }
+    .search-row {
+      display: flex; gap: 12px; align-items: stretch;
+    }
+    .search-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 0.9rem;
+      font-weight: 400;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .search-input:focus {
+      border-color: rgba(0,229,255,.5);
+      box-shadow: 0 0 0 3px rgba(0,229,255,.07);
+    }
+    .search-input::placeholder { color: var(--dim); }
+    .search-btn {
+      font-family: var(--mono);
+      font-size: 0.72rem; letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 10px 22px; border-radius: 4px;
+      border: none; cursor: pointer;
+      background: var(--accent); color: var(--bg);
+      transition: background .2s, box-shadow .2s;
+      white-space: nowrap;
+    }
+    .search-btn:hover {
+      background: #33eeff;
+      box-shadow: 0 0 16px rgba(0,229,255,.25);
+    }
+
+    /* ── Results section ──────────────────────── */
+    .results-header {
+      width: 100%; max-width: 860px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .results-title {
+      font-family: var(--mono);
+      font-size: 0.72rem; color: var(--dim);
+      letter-spacing: 2px; text-transform: uppercase;
+    }
+    .results-title b { color: var(--accent); font-weight: 400; }
+
+    .results-list {
+      width: 100%; max-width: 860px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    /* ── Result row ───────────────────────────── */
+    .result-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: flex; align-items: center; gap: 18px;
+      padding: 14px 18px;
+      position: relative; overflow: hidden;
+      transition: border-color .2s, background .2s;
+    }
+    .result-row::before {
+      content: "";
+      position: absolute; top: 0; left: 0; bottom: 0; width: 2px;
+      background: var(--accent);
+      transform: scaleY(0); transform-origin: top;
+      transition: transform .25s ease;
+    }
+    .result-row:hover {
+      border-color: rgba(0,229,255,.3);
+      background: #0e1620;
+    }
+    .result-row:hover::before { transform: scaleY(1); }
+
+    .result-thumb {
+      width: 72px; height: 72px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      overflow: hidden; background: var(--bg);
+      flex-shrink: 0;
+    }
+    .result-thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+
+    .result-info { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .result-name {
+      font-weight: 600; font-size: 0.95rem; color: var(--text);
+    }
+    .result-meta {
+      display: flex; flex-wrap: wrap; gap: 16px;
+    }
+    .meta-item {
+      font-family: var(--mono);
+      font-size: 0.6rem; color: var(--dim);
+      letter-spacing: 1px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .meta-item b { color: var(--text); font-weight: 400; }
+    .meta-item .meta-label { color: var(--dim); }
+
+    .result-time {
+      font-family: var(--mono);
+      font-size: 0.62rem; color: var(--dim);
+      letter-spacing: 1px; text-align: right;
+      white-space: nowrap; flex-shrink: 0;
+    }
+
+    /* ── Empty / no-results ───────────────────── */
+    .empty-state {
+      width: 100%; max-width: 860px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      padding: 48px 24px; text-align: center;
+    }
+    .empty-state p {
+      font-family: var(--mono);
+      font-size: 0.7rem; color: var(--dim); letter-spacing: 2px;
+    }
+
+    /* ── Footer ───────────────────────────────── */
+    footer {
+      padding: 12px 24px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: center; gap: 32px;
+      font-family: var(--mono); font-size: 0.65rem; color: var(--dim);
+    }
+    footer span b { color: var(--text); }
+
+    @media (max-width: 580px) {
+      .page-header { flex-direction: column; align-items: flex-start; }
+      .search-row { flex-direction: column; }
+      .result-row { flex-wrap: wrap; }
+      .result-time { text-align: left; }
+    }
+  </style>
 </head>
 <body>
-    <h1>🔍 Track History Dashboard</h1>
 
-    <form method="POST">
-        <input type="text" name="name" placeholder="Person name" value="{{ query_name or '' }}">
-        <select name="camera">
-            <option value="">All Cameras</option>
-            {% for cam in all_cameras %}
-            <option value="{{ cam }}" {% if camera_filter == cam %}selected{% endif %}>{{ cam }}</option>
-            {% endfor %}
-        </select>
-        <input type="date" name="start_date" value="{{ start_date or '' }}">
-        <input type="date" name="end_date" value="{{ end_date or '' }}">
-        <select name="sort_order">
-            <option value="-1" {% if sort_order == -1 %}selected{% endif %}>Newest First</option>
-            <option value="1" {% if sort_order == 1 %}selected{% endif %}>Oldest First</option>
-        </select>
-        <button type="submit">Search</button>
-        <a href="/"><button type="button">Home</button></a>
+<header>
+  <a href="/" class="logo">SENTINEL<span>VIEW</span></a>
+  <div class="header-right">
+    <span><span class="dot"></span>&nbsp;LIVE</span>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Track History</div>
+      <div class="page-sub">Detection logs &amp; search</div>
+    </div>
+    <a href="/" class="btn-ghost">← Home</a>
+  </div>
+
+  <!-- Search -->
+  <div class="search-card">
+    <form method="POST" class="search-row">
+      <input class="search-input" type="text" name="name"
+             placeholder="Search by person name…" required
+             value="{{ query_name or '' }}">
+      <button class="search-btn" type="submit">Search →</button>
     </form>
-{% if query_name %}
-<div style="margin-top: 10px;">
-    <a href="{{ url_for('export_excel', name=query_name) }}" class="btn">📊 Export Excel</a>
-    <a href="{{ url_for('export_pdf', name=query_name) }}" class="btn">📄 Export PDF</a>
-</div>
-{% endif %}
+  </div>
+
+  <!-- Results -->
+  {% if query_name %}
+    <div class="results-header">
+      <div class="results-title">Results for <b>"{{ query_name }}"</b></div>
+    </div>
 
     {% if results %}
-    <div class="timeline">
-        {% for item in results %}
-        <div class="entry">
-            <div class="thumb">
-                {% if item.thumbnail %}
-                <a href="#popup{{ loop.index }}">
-                    <img src="{{ item.thumbnail }}" alt="Thumbnail">
-                </a>
-                <div id="popup{{ loop.index }}" class="lightbox">
-                    <a href="#" class="close-btn">&times;</a>
-                    <img src="{{ item.thumbnail }}" alt="Full image">
+      <div class="results-list">
+        {% for r in results %}
+            <div class="result-row">
+                <div class="result-thumb">
+                <img src="{{ r.thumbnail }}" alt="{{ r.person_name }}">
                 </div>
-                {% else %} 
-                <div style="width:100%;height:100%;background:#444;display:flex;align-items:center;justify-content:center;">No Image</div>
-                {% endif %}
+                <div class="result-info">
+                <div class="result-name">
+                    {{ r.person_name }}
+                </div>
+                <div class="result-meta">
+                    <div class="meta-item">
+                    <span class="meta-label">CAMERA</span>
+                    <b>{{ r.camera_name }}</b>
+                    </div>
+                    <div class="meta-item">
+                    <span class="meta-label">TRACK ID</span>
+                    <b>{{ r.track_id }}</b>
+                    </div>
+                </div>
+                </div>
+                <div class="result-time">{{ r.formatted_time }}</div>
             </div>
-            <div class="info">
-                <h3>{{ item.person_name }}</h3>
-                <p>📹 Camera: <strong>{{ item.camera_name }}</strong></p>
-                <p class="timestamp">🕓 {{ item.formatted_time }}</p>
-            </div>
-        </div>
         {% endfor %}
-    </div>
-    {% elif query_name or camera_filter %}
-    <p style="text-align:center;">No records found for given filters.</p>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <p>No results found for "{{ query_name }}".</p>
+      </div>
     {% endif %}
+  {% endif %}
+
+</main>
+
+<footer>
+  <span>CAMERAS <b>{{ cameras_online | default('—') }}</b></span>
+  <span>ENROLLED <b>{{ enrolled_count | default('—') }}</b></span>
+  <span>BUILD <b>v2.0</b></span>
+</footer>
+
+<script>
+  (function tickClock() {
+    document.getElementById("clock").textContent =
+      new Date().toTimeString().slice(0, 8);
+    setTimeout(tickClock, 1000);
+  })();
+</script>
+
 </body>
 </html>
